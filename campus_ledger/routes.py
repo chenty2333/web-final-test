@@ -1,23 +1,18 @@
 """REST routes for the Starry Campus Ledger Flask backend."""
 
-from datetime import datetime
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
-
-from flask import Blueprint, request
+from flask import Blueprint, current_app, request
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 
-from . import db
 from .ai_client import CampusAiClient
+from .errors import ApiError
+from .extensions import db
 from .models import Category, LedgerEntry, SavingGoal, User
+from .responses import api_response
 from .seed import TIPS
+from .services.entries import build_summary, create_entry, delete_entry, get_entry, list_entries, update_entry
+from .validators import parse_month
 
 api_bp = Blueprint("api", __name__)
-MONEY_QUANT = Decimal("0.01")
-
-
-def api_response(code=200, msg="success", data=None, http_status=200):
-    """Return the course-required three-part JSON response."""
-    return {"code": code, "msg": msg, "data": data or {}}, http_status
 
 
 def register_jwt_handlers(jwt):
@@ -35,60 +30,20 @@ def register_jwt_handlers(jwt):
 
 
 def current_user():
-    return User.query.get(int(get_jwt_identity()))
+    user = db.session.get(User, int(get_jwt_identity()))
+    if user is None:
+        raise ApiError("用户不存在，请重新登录", 401, 401)
+    return user
 
 
-def parse_money(value, field_name="金额"):
-    if value is None or str(value).strip() == "":
-        return None, f"{field_name}不能为空"
-    try:
-        amount = Decimal(str(value).strip()).quantize(MONEY_QUANT, rounding=ROUND_HALF_UP)
-    except (InvalidOperation, ValueError):
-        return None, f"{field_name}必须是有效数字"
-    if amount < 0:
-        return None, f"{field_name}不能小于 0"
-    if amount > Decimal("99999999.99"):
-        return None, f"{field_name}不能超过 99999999.99"
-    return amount, None
-
-
-def parse_date(value):
-    if not value:
-        return datetime.now().replace(hour=12, minute=0, second=0, microsecond=0), None
-    try:
-        return datetime.strptime(value, "%Y-%m-%d"), None
-    except ValueError:
-        return None, "日期格式必须为 YYYY-MM-DD"
-
-
-def build_summary(user_id):
-    entries = LedgerEntry.query.filter_by(user_id=user_id).all()
-    expense = sum((e.amount for e in entries if e.kind == "expense"), Decimal("0"))
-    income = sum((e.amount for e in entries if e.kind == "income"), Decimal("0"))
-    by_category = {}
-    for entry in entries:
-        if entry.kind != "expense":
-            continue
-        name = entry.category.name if entry.category else "未分类"
-        by_category[name] = by_category.get(name, Decimal("0")) + entry.amount
-    top_category = max(by_category, key=by_category.get) if by_category else ""
-    return {
-        "income": float(income),
-        "expense": float(expense),
-        "balance": float(income - expense),
-        "entry_count": len(entries),
-        "top_category": top_category,
-        "category_totals": [
-            {"name": name, "amount": float(amount)}
-            for name, amount in sorted(by_category.items(), key=lambda item: item[1], reverse=True)
-        ],
-    }
+@api_bp.get("/health")
+def health():
+    return api_response(data={"app": current_app.config["APP_NAME"], "status": "ok"})
 
 
 @api_bp.get("/public/overview")
 def public_overview():
     categories = Category.query.order_by(Category.sort_order).all()
-    entries_count = LedgerEntry.query.count()
     return api_response(
         data={
             "app_name": "星芒账本",
@@ -96,7 +51,7 @@ def public_overview():
             "stats": {
                 "seed_users": User.query.count(),
                 "seed_categories": len(categories),
-                "seed_entries": entries_count,
+                "seed_entries": LedgerEntry.query.count(),
             },
             "tips": TIPS,
             "sample_categories": [item.to_dict() for item in categories[:6]],
@@ -118,15 +73,15 @@ def register():
     email = str(data.get("email", "")).strip()
     password = str(data.get("password", ""))
     if len(username) < 3:
-        return api_response(400, "用户名至少 3 个字符", {}, 400)
+        raise ApiError("用户名至少 3 个字符")
     if "@" not in email:
-        return api_response(400, "邮箱格式不正确", {}, 400)
+        raise ApiError("邮箱格式不正确")
     if len(password) < 6:
-        return api_response(400, "密码至少 6 位", {}, 400)
+        raise ApiError("密码至少 6 位")
     if User.query.filter_by(username=username).first():
-        return api_response(409, "用户名已存在", {}, 409)
+        raise ApiError("用户名已存在", 409, 409)
     if User.query.filter_by(email=email).first():
-        return api_response(409, "邮箱已存在", {}, 409)
+        raise ApiError("邮箱已存在", 409, 409)
     user = User(username=username, nickname=nickname, email=email)
     user.set_password(password)
     db.session.add(user)
@@ -141,7 +96,7 @@ def login():
     password = str(data.get("password", ""))
     user = User.query.filter_by(username=username).first()
     if user is None or not user.check_password(password):
-        return api_response(401, "用户名或密码错误", {}, 401)
+        raise ApiError("用户名或密码错误", 401, 401)
     token = create_access_token(identity=str(user.id), additional_claims={"username": user.username})
     return api_response(data={"access_token": token, "token_type": "Bearer", "user": user.to_dict()})
 
@@ -156,112 +111,55 @@ def me():
 @jwt_required()
 def summary():
     user = current_user()
+    month_label, start, end = parse_month(request.args.get("month"), default_current=True)
     goals = SavingGoal.query.filter_by(user_id=user.id).order_by(SavingGoal.id).all()
-    return api_response(data={"summary": build_summary(user.id), "goals": [goal.to_dict() for goal in goals]})
+    return api_response(data={"summary": build_summary(user.id, month_label, start, end), "goals": [goal.to_dict() for goal in goals]})
 
 
 @api_bp.get("/entries")
 @jwt_required()
-def list_entries():
+def entries_list():
     user = current_user()
-    query = LedgerEntry.query.filter_by(user_id=user.id)
-    category_id = request.args.get("category_id")
-    kind = request.args.get("kind")
-    if category_id:
-        query = query.filter_by(category_id=int(category_id))
-    if kind in {"expense", "income"}:
-        query = query.filter_by(kind=kind)
-    rows = query.order_by(LedgerEntry.spent_at.desc(), LedgerEntry.id.desc()).all()
-    return api_response(data={"entries": [row.to_dict() for row in rows]})
+    month_label, start, end = parse_month(request.args.get("month"), default_current=False)
+    data = list_entries(
+        user.id,
+        {
+            "category_id": request.args.get("category_id"),
+            "kind": request.args.get("kind"),
+            "month_label": month_label,
+            "month_start": start,
+            "month_end": end,
+            "page": request.args.get("page"),
+            "page_size": request.args.get("page_size"),
+        },
+    )
+    return api_response(data=data)
 
 
 @api_bp.get("/entries/<int:entry_id>")
 @jwt_required()
-def get_entry(entry_id):
-    row = LedgerEntry.query.filter_by(id=entry_id, user_id=current_user().id).first()
-    if row is None:
-        return api_response(404, "账目不存在", {}, 404)
-    return api_response(data={"entry": row.to_dict()})
-
-
-def normalize_entry_payload(data, partial=False):
-    payload = {}
-    if not isinstance(data, dict):
-        return None, "请求体必须是 JSON 对象"
-    required = [] if partial else ["title", "amount", "category_id", "kind", "spent_at"]
-    for field in required:
-        if data.get(field) in (None, ""):
-            return None, f"{field} 不能为空"
-    if "title" in data:
-        title = str(data.get("title", "")).strip()
-        if not title or len(title) > 120:
-            return None, "账目标题不能为空且不能超过 120 个字符"
-        payload["title"] = title
-    if "amount" in data:
-        amount, error = parse_money(data.get("amount"))
-        if error or amount <= 0:
-            return None, error or "金额必须大于 0"
-        payload["amount"] = amount
-    if "category_id" in data:
-        category = Category.query.get(int(data.get("category_id") or 0))
-        if category is None:
-            return None, "分类不存在"
-        payload["category_id"] = category.id
-    if "kind" in data:
-        kind = str(data.get("kind", "")).strip()
-        if kind not in {"expense", "income"}:
-            return None, "类型只能是 expense 或 income"
-        payload["kind"] = kind
-    if "spent_at" in data:
-        spent_at, error = parse_date(data.get("spent_at"))
-        if error:
-            return None, error
-        payload["spent_at"] = spent_at
-    for field, limit in [("scene", 40), ("mood", 20), ("note", 240)]:
-        if field in data:
-            payload[field] = str(data.get(field, "")).strip()[:limit]
-    if partial and not payload:
-        return None, "没有可更新的数据"
-    return payload, None
+def entry_detail(entry_id):
+    return api_response(data={"entry": get_entry(current_user().id, entry_id).to_dict()})
 
 
 @api_bp.post("/entries")
 @jwt_required()
-def create_entry():
-    payload, error = normalize_entry_payload(request.get_json(silent=True) or {})
-    if error:
-        return api_response(400, error, {}, 400)
-    row = LedgerEntry(user_id=current_user().id, **payload)
-    db.session.add(row)
-    db.session.commit()
+def entry_create():
+    row = create_entry(current_user().id, request.get_json(silent=True) or {})
     return api_response(201, "success", {"entry": row.to_dict()}, 201)
 
 
 @api_bp.put("/entries/<int:entry_id>")
 @jwt_required()
-def update_entry(entry_id):
-    row = LedgerEntry.query.filter_by(id=entry_id, user_id=current_user().id).first()
-    if row is None:
-        return api_response(404, "账目不存在", {}, 404)
-    payload, error = normalize_entry_payload(request.get_json(silent=True) or {}, partial=True)
-    if error:
-        return api_response(400, error, {}, 400)
-    for key, value in payload.items():
-        setattr(row, key, value)
-    db.session.commit()
+def entry_update(entry_id):
+    row = update_entry(current_user().id, entry_id, request.get_json(silent=True) or {})
     return api_response(data={"entry": row.to_dict()})
 
 
 @api_bp.delete("/entries/<int:entry_id>")
 @jwt_required()
-def delete_entry(entry_id):
-    row = LedgerEntry.query.filter_by(id=entry_id, user_id=current_user().id).first()
-    if row is None:
-        return api_response(404, "账目不存在", {}, 404)
-    deleted_id = row.id
-    db.session.delete(row)
-    db.session.commit()
-    return api_response(data={"deleted_id": deleted_id})
+def entry_delete(entry_id):
+    return api_response(data={"deleted_id": delete_entry(current_user().id, entry_id)})
 
 
 @api_bp.get("/goals")
@@ -277,8 +175,9 @@ def ai_coach():
     data = request.get_json(silent=True) or {}
     question = str(data.get("question", "")).strip()
     if not question:
-        return api_response(400, "问题不能为空", {}, 400)
+        raise ApiError("问题不能为空")
     user = current_user()
-    context = build_summary(user.id)
+    month_label, start, end = parse_month(request.args.get("month"), default_current=True)
+    context = build_summary(user.id, month_label, start, end)
     answer = CampusAiClient().chat(question, context)
     return api_response(data={"answer": answer, "context": context})

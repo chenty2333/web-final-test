@@ -86,15 +86,15 @@
             <button data-auth-tab="register">注册</button>
           </div>
           <form id="loginForm" class="stack-form">
-            <label>用户名<input name="username" value="test" required></label>
-            <label>密码<input name="password" type="password" value="123456" required></label>
+            <label>用户名<input name="username" value="test" autocomplete="username" autocapitalize="off" required></label>
+            <label>密码<input name="password" type="password" value="123456" autocomplete="current-password" required></label>
             <button class="primary-btn full" type="submit">登录</button>
           </form>
           <form id="registerForm" class="stack-form hidden">
-            <label>用户名<input name="username" minlength="3" required></label>
-            <label>昵称<input name="nickname" required></label>
-            <label>邮箱<input name="email" type="email" required></label>
-            <label>密码<input name="password" type="password" minlength="6" required></label>
+            <label>用户名<input name="username" minlength="3" autocomplete="username" autocapitalize="off" required></label>
+            <label>昵称<input name="nickname" autocomplete="nickname" required></label>
+            <label>邮箱<input name="email" type="email" autocomplete="email" inputmode="email" required></label>
+            <label>密码<input name="password" type="password" minlength="6" autocomplete="new-password" required></label>
             <button class="primary-btn full" type="submit">注册</button>
           </form>
           <div id="authMessage" class="message hidden"></div>
@@ -108,9 +108,22 @@
           <p class="eyebrow">我的账本</p>
           <h1>生活仪表盘</h1>
         </div>
-        <button class="primary-btn" data-route="entries">新增一笔</button>
+        <div class="toolbar-actions">
+          <label class="compact-label">月份<input id="dashboardMonth" type="month"></label>
+          <button class="primary-btn" data-route="entries">新增一笔</button>
+        </div>
       </div>
       <div id="summaryCards" class="summary-grid"></div>
+      <div class="chart-grid">
+        <section class="surface">
+          <h2>六个月收支趋势</h2>
+          <div id="trendChart" class="trend-chart"></div>
+        </section>
+        <section class="surface">
+          <h2>预算使用率</h2>
+          <div id="budgetChart" class="budget-list"></div>
+        </section>
+      </div>
       <div class="two-column">
         <section class="surface">
           <h2>分类支出排行</h2>
@@ -134,14 +147,14 @@
         <form id="entryForm" class="surface form-grid">
           <h2 id="entryFormTitle">新增账目</h2>
           <input type="hidden" name="entry_id">
-          <label>标题<input name="title" maxlength="120" required placeholder="例如：食堂午餐"></label>
-          <label>金额<input name="amount" type="number" min="0.01" step="0.01" required placeholder="0.00"></label>
+          <label>标题<input name="title" maxlength="120" autocomplete="off" enterkeyhint="next" required placeholder="例如：食堂午餐"></label>
+          <label>金额<input name="amount" type="number" min="0.01" step="0.01" inputmode="decimal" required placeholder="0.00"></label>
           <label>分类<select name="category_id" required></select></label>
           <label>类型<select name="kind"><option value="expense">支出</option><option value="income">收入</option></select></label>
           <label>日期<input name="spent_at" type="date" required></label>
-          <label>场景<input name="scene" maxlength="40" placeholder="例如：食堂窗口"></label>
-          <label>心情<input name="mood" maxlength="20" placeholder="例如：满足"></label>
-          <label class="wide">备注<textarea name="note" maxlength="240" placeholder="写一句复盘线索"></textarea></label>
+          <label>场景<input name="scene" maxlength="40" autocomplete="off" placeholder="例如：食堂窗口"></label>
+          <label>心情<input name="mood" maxlength="20" autocomplete="off" placeholder="例如：满足"></label>
+          <label class="wide">备注<textarea name="note" maxlength="240" enterkeyhint="done" placeholder="写一句复盘线索"></textarea></label>
           <div class="form-actions wide">
             <button class="ghost-btn" type="button" id="resetEntryForm">清空</button>
             <button class="primary-btn" type="submit">保存账目</button>
@@ -151,13 +164,18 @@
         <section class="surface">
           <div class="list-toolbar">
             <h2>账目列表</h2>
-            <select id="kindFilter">
-              <option value="">全部</option>
-              <option value="expense">支出</option>
-              <option value="income">收入</option>
-            </select>
+            <div class="filter-row">
+              <label class="compact-label">月份<input id="entryMonthFilter" type="month"></label>
+              <label class="compact-label">分类<select id="categoryFilter"><option value="">全部分类</option></select></label>
+              <label class="compact-label">类型<select id="kindFilter">
+                <option value="">全部</option>
+                <option value="expense">支出</option>
+                <option value="income">收入</option>
+              </select></label>
+            </div>
           </div>
           <div id="entryList" class="entry-list"></div>
+          <div id="entryPager" class="pager"></div>
         </section>
       </div>
     </section>
@@ -185,7 +203,7 @@
             <div class="chat-msg assistant">可以问我：“这周怎么少花一点？”或“我的账本哪里最该复盘？”</div>
           </div>
           <form id="aiForm" class="chat-form">
-            <input name="question" required placeholder="输入你的账本问题">
+            <input name="question" autocomplete="off" enterkeyhint="send" required placeholder="输入你的账本问题">
             <button class="primary-btn" type="submit">发送</button>
           </form>
         </section>
@@ -197,6 +215,6 @@
     </section>
   </main>
 
-  <script src="/static/js/app.js"></script>
+  <script type="module" src="/static/js/app.js"></script>
 </body>
 </html>

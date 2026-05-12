@@ -45,3 +45,9 @@ CREATE TABLE saving_goals (
     status VARCHAR(20) NOT NULL,
     created_at DATETIME NOT NULL
 );
+
+CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_entries_user_date ON ledger_entries(user_id, spent_at);
+CREATE INDEX idx_entries_user_category ON ledger_entries(user_id, category_id);
+CREATE INDEX idx_goals_user ON saving_goals(user_id);

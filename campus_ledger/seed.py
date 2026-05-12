@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-from . import db
+from .extensions import db
 from .models import Category, LedgerEntry, SavingGoal, User
 
 

@@ -1,5 +1,6 @@
 __pycache__/
 *.py[cod]
+.pytest_cache/
 .venv/
 venv/
 instance/
@@ -8,6 +9,9 @@ ledger.db
 *.sqlite
 *.sqlite3
 *.log
+.env
+.env.*
+!.env.example
 *.zip
 ~$*.docx
 design_doc_assets/

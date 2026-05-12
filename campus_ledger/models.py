@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from . import bcrypt, db
+from .extensions import bcrypt, db
 
 
 def utc_now():

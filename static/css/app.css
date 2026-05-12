@@ -213,6 +213,7 @@ main {
 .hero-grid,
 .auth-layout,
 .ai-layout,
+.chart-grid,
 .two-column,
 .manager-layout {
   display: grid;
@@ -227,6 +228,11 @@ main {
 .auth-layout,
 .ai-layout {
   grid-template-columns: minmax(0, 0.85fr) minmax(360px, 1fr);
+}
+
+.chart-grid {
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  margin: 18px 0 22px;
 }
 
 .two-column {
@@ -410,6 +416,26 @@ label {
   margin-bottom: 20px;
 }
 
+.toolbar-actions,
+.filter-row {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.compact-label {
+  min-width: 142px;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.compact-label input,
+.compact-label select {
+  min-height: 40px;
+}
+
 .summary-card {
   min-height: 130px;
 }
@@ -420,6 +446,7 @@ label {
 }
 
 .bar-list,
+.budget-list,
 .compact-list,
 .entry-list {
   display: grid;
@@ -449,6 +476,73 @@ label {
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--blue), var(--mint));
+}
+
+.trend-chart {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(58px, 1fr));
+  align-items: end;
+  gap: 14px;
+  min-height: 230px;
+}
+
+.trend-month {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 10px;
+  min-width: 0;
+}
+
+.trend-bars {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  gap: 6px;
+  height: 162px;
+  padding: 10px 8px 0;
+  border-radius: 8px;
+  background: #f7f9fd;
+}
+
+.trend-bar {
+  width: 18px;
+  min-height: 4px;
+  border-radius: 999px 999px 2px 2px;
+}
+
+.trend-bar.income {
+  background: var(--mint);
+}
+
+.trend-bar.expense {
+  background: var(--coral);
+}
+
+.trend-label {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.budget-item {
+  display: grid;
+  gap: 8px;
+}
+
+.budget-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.budget-meta strong {
+  color: var(--text);
 }
 
 .compact-item,
@@ -522,8 +616,38 @@ label {
   margin-bottom: 14px;
 }
 
-.list-toolbar select {
-  width: 160px;
+.list-toolbar h2 {
+  margin-bottom: 0;
+}
+
+.list-toolbar select,
+.list-toolbar input {
+  width: 150px;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.pager button {
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  padding: 7px 12px;
+  font-weight: 800;
+}
+
+.pager button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .goal-card {
@@ -602,6 +726,7 @@ code {
   .hero-grid,
   .auth-layout,
   .ai-layout,
+  .chart-grid,
   .two-column,
   .manager-layout,
   .guest-grid,
@@ -629,6 +754,24 @@ code {
   .page-heading {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .toolbar-actions,
+  .filter-row,
+  .list-toolbar,
+  .pager {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .compact-label,
+  .list-toolbar select,
+  .list-toolbar input {
+    width: 100%;
+  }
+
+  .trend-chart {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .compact-item,
