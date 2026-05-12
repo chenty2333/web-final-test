@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+instance/
+ledger.db
+*.sqlite
+*.sqlite3
+*.log
+*.zip
+~$*.docx
+design_doc_assets/
+design_doc_render*/
+lo_convert*/
+lo_profile*/
