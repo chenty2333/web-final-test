@@ -3,752 +3,200 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>个人流水账管理系统</title>
-  <style>
-    :root {
-      color-scheme: light;
-      --bg: #f5f7fb;
-      --surface: #ffffff;
-      --surface-strong: #eef3ff;
-      --line: #d8dee9;
-      --text: #172033;
-      --muted: #667085;
-      --primary: #1d4ed8;
-      --primary-dark: #163fae;
-      --accent: #0f766e;
-      --danger: #b42318;
-      --danger-bg: #fff1f0;
-      --shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      min-width: 320px;
-      min-height: 100vh;
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
-      letter-spacing: 0;
-    }
-
-    button,
-    input {
-      font: inherit;
-    }
-
-    button {
-      border: 0;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-      white-space: nowrap;
-    }
-
-    button:disabled {
-      cursor: not-allowed;
-      opacity: 0.55;
-    }
-
-    input {
-      width: 100%;
-      min-height: 40px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      padding: 8px 10px;
-      color: var(--text);
-      background: #fff;
-      outline: none;
-    }
-
-    input:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.14);
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    .auth-shell {
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: 24px;
-    }
-
-    .auth-panel {
-      width: min(420px, 100%);
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 30px;
-      box-shadow: var(--shadow);
-    }
-
-    .auth-panel h1,
-    .modal h2,
-    .topbar h1 {
-      margin: 0;
-      letter-spacing: 0;
-    }
-
-    .auth-panel h1 {
-      font-size: 26px;
-      line-height: 1.25;
-    }
-
-    .auth-panel p,
-    .topbar p {
-      margin: 8px 0 0;
-      color: var(--muted);
-    }
-
-    .field {
-      display: grid;
-      gap: 8px;
-      margin-top: 18px;
-    }
-
-    .field label {
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .primary-btn,
-    .success-btn,
-    .plain-btn,
-    .danger-btn,
-    .ghost-btn {
-      min-height: 38px;
-      padding: 8px 14px;
-      font-weight: 600;
-    }
-
-    .primary-btn {
-      background: var(--primary);
-      color: #fff;
-    }
-
-    .primary-btn:hover {
-      background: var(--primary-dark);
-    }
-
-    .success-btn {
-      background: var(--accent);
-      color: #fff;
-    }
-
-    .success-btn:hover {
-      background: #0b5f59;
-    }
-
-    .plain-btn {
-      background: #eef2f7;
-      color: var(--text);
-    }
-
-    .plain-btn:hover {
-      background: #dfe5ee;
-    }
-
-    .danger-btn {
-      background: var(--danger);
-      color: #fff;
-    }
-
-    .danger-btn:hover {
-      background: #8f1d14;
-    }
-
-    .ghost-btn {
-      border: 1px solid var(--line);
-      background: #fff;
-      color: var(--text);
-    }
-
-    .ghost-btn:hover {
-      border-color: #aeb8c8;
-      background: #f8fafc;
-    }
-
-    .form-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-      margin-top: 22px;
-    }
-
-    .form-actions .primary-btn {
-      width: 100%;
-    }
-
-    .alert {
-      border: 1px solid #ffcdc7;
-      border-radius: 6px;
-      background: var(--danger-bg);
-      color: var(--danger);
-      padding: 10px 12px;
-      line-height: 1.5;
-    }
-
-    #loginError {
-      margin-top: 18px;
-    }
-
-    .app-shell {
-      min-height: 100vh;
-    }
-
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-      padding: 22px clamp(18px, 4vw, 48px);
-      background: var(--surface);
-      border-bottom: 1px solid var(--line);
-    }
-
-    .topbar h1 {
-      font-size: 24px;
-    }
-
-    .topbar-actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
-    .content {
-      width: min(1100px, calc(100% - 36px));
-      margin: 28px auto 48px;
-    }
-
-    #globalError {
-      margin-bottom: 14px;
-    }
-
-    .ledger-section {
-      overflow: hidden;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--surface);
-      box-shadow: var(--shadow);
-    }
-
-    .table-wrap {
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-      min-width: 720px;
-      border-collapse: collapse;
-    }
-
-    th,
-    td {
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--line);
-      text-align: left;
-      vertical-align: middle;
-    }
-
-    th {
-      background: var(--surface-strong);
-      font-size: 14px;
-      color: #31415f;
-    }
-
-    tbody tr:hover {
-      background: #fafcff;
-    }
-
-    tfoot td {
-      border-bottom: 0;
-      background: #f8fafc;
-      font-weight: 700;
-    }
-
-    .amount-cell,
-    #totalAmount {
-      font-variant-numeric: tabular-nums;
-    }
-
-    .row-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .row-actions button {
-      min-width: 66px;
-    }
-
-    .new-row {
-      background: #fffdf3;
-    }
-
-    .empty {
-      padding: 34px 16px;
-      text-align: center;
-      color: var(--muted);
-      border-top: 1px solid var(--line);
-    }
-
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      z-index: 20;
-      display: grid;
-      place-items: center;
-      padding: 18px;
-      background: rgba(15, 23, 42, 0.48);
-    }
-
-    .modal {
-      width: min(460px, 100%);
-      background: var(--surface);
-      border-radius: 8px;
-      box-shadow: 0 22px 70px rgba(15, 23, 42, 0.24);
-      padding: 24px;
-    }
-
-    .modal h2 {
-      font-size: 22px;
-    }
-
-    #editError {
-      margin-top: 16px;
-    }
-
-    @media (max-width: 680px) {
-      .topbar {
-        align-items: stretch;
-        flex-direction: column;
-      }
-
-      .topbar-actions {
-        justify-content: stretch;
-      }
-
-      .topbar-actions button {
-        flex: 1 1 auto;
-      }
-
-      .content {
-        width: calc(100% - 24px);
-        margin-top: 18px;
-      }
-
-      .auth-panel {
-        padding: 24px 20px;
-      }
-
-      th,
-      td {
-        padding: 12px;
-      }
-    }
-  </style>
+  <title>星芒账本 - 创意型大学生生活记账本</title>
+  <link rel="stylesheet" href="/static/css/app.css">
 </head>
 <body>
-  <section id="loginView" class="auth-shell">
-    <main class="auth-panel">
-      <h1>个人流水账管理系统</h1>
-      <p>使用测试账号 test / 123456 登录</p>
-      <form id="loginForm" autocomplete="on">
-        <div class="field">
-          <label for="username">用户名</label>
-          <input id="username" name="username" autocomplete="username" required>
-        </div>
-        <div class="field">
-          <label for="password">密码</label>
-          <input id="password" name="password" type="password" autocomplete="current-password" required>
-        </div>
-        <div id="loginError" class="alert hidden"></div>
-        <div class="form-actions">
-          <button id="loginButton" class="primary-btn" type="submit">登录</button>
-        </div>
-      </form>
-    </main>
-  </section>
-
-  <section id="appView" class="app-shell hidden">
-    <header class="topbar">
-      <div>
-        <h1>今日消费记录</h1>
-        <p id="todayLabel">正在读取...</p>
-      </div>
-      <div class="topbar-actions">
-        <button id="addButton" class="primary-btn" type="button">+ 新增</button>
-        <button id="logoutButton" class="ghost-btn" type="button">退出登录</button>
-      </div>
-    </header>
-
-    <main class="content">
-      <div id="globalError" class="alert hidden"></div>
-      <section class="ledger-section">
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 36%;">消费项</th>
-                <th style="width: 18%;">金额</th>
-                <th style="width: 28%;">时间</th>
-                <th style="width: 18%;">操作</th>
-              </tr>
-            </thead>
-            <tbody id="recordsBody"></tbody>
-            <tfoot>
-              <tr>
-                <td>今日合计</td>
-                <td id="totalAmount">0.00</td>
-                <td colspan="2"></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-        <div id="emptyState" class="empty hidden">今天还没有消费记录</div>
-      </section>
-    </main>
-  </section>
-
-  <div id="editModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="editTitle">
-    <div class="modal">
-      <h2 id="editTitle">修改消费记录</h2>
-      <form id="editForm">
-        <div class="field">
-          <label for="editItem">消费项</label>
-          <input id="editItem" name="item_name" required maxlength="120">
-        </div>
-        <div class="field">
-          <label for="editAmount">金额</label>
-          <input id="editAmount" name="amount" type="number" min="0.01" step="0.01" required>
-        </div>
-        <div id="editError" class="alert hidden"></div>
-        <div class="form-actions">
-          <button id="cancelEditButton" class="plain-btn" type="button">取消</button>
-          <button id="saveEditButton" class="success-btn" type="submit">保存</button>
-        </div>
-      </form>
+  <header class="app-header">
+    <a class="brand" href="#home" data-route="home">
+      <span class="brand-mark">星</span>
+      <span>
+        <strong>星芒账本</strong>
+        <small>大学生生活记账本</small>
+      </span>
+    </a>
+    <nav class="nav">
+      <button data-route="home">游客浏览</button>
+      <button data-route="dashboard" data-auth-only>仪表盘</button>
+      <button data-route="entries" data-auth-only>记账管理</button>
+      <button data-route="goals" data-auth-only>心愿基金</button>
+      <button data-route="ai" data-auth-only>AI 账本教练</button>
+    </nav>
+    <div class="account-actions">
+      <span id="userBadge" class="user-badge hidden"></span>
+      <button id="authNavButton" class="primary-btn" data-route="auth">登录 / 注册</button>
+      <button id="logoutButton" class="ghost-btn hidden">退出</button>
     </div>
-  </div>
+  </header>
 
-  <script>
-    const API_BASE = window.location.protocol === "file:" ? "http://127.0.0.1:5000" : "";
-    const TOKEN_KEY = "test2_2_token";
+  <main>
+    <section id="homeView" class="view">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">课程设计选题 3</p>
+          <h1>创意型大学生生活记账本</h1>
+          <p class="lead">把食堂、奶茶、学习资料、社团活动和兼职收入放进同一本账里，用分类预算、心愿基金和 AI 复盘让校园花销更清楚。</p>
+          <div class="hero-actions">
+            <button class="primary-btn" data-route="auth">开始登录</button>
+            <button class="ghost-btn" data-scroll="#guestInfo">先看看游客信息</button>
+          </div>
+        </div>
+        <div class="ledger-preview" aria-label="账本预览">
+          <div class="preview-top">
+            <span>本月创意账单</span>
+            <strong id="guestSeedCount">-- 条样例</strong>
+          </div>
+          <div class="preview-row">
+            <span>食堂早餐</span>
+            <strong>-8.50</strong>
+          </div>
+          <div class="preview-row accent">
+            <span>兼职家教</span>
+            <strong>+180.00</strong>
+          </div>
+          <div class="preview-row">
+            <span>高数习题册</span>
+            <strong>-32.00</strong>
+          </div>
+          <div class="preview-total">
+            <span>记账不是克制生活，是看见选择。</span>
+          </div>
+        </div>
+      </div>
 
-    const loginView = document.querySelector("#loginView");
-    const appView = document.querySelector("#appView");
-    const loginForm = document.querySelector("#loginForm");
-    const loginButton = document.querySelector("#loginButton");
-    const loginError = document.querySelector("#loginError");
-    const globalError = document.querySelector("#globalError");
-    const todayLabel = document.querySelector("#todayLabel");
-    const addButton = document.querySelector("#addButton");
-    const logoutButton = document.querySelector("#logoutButton");
-    const recordsBody = document.querySelector("#recordsBody");
-    const totalAmount = document.querySelector("#totalAmount");
-    const emptyState = document.querySelector("#emptyState");
-    const editModal = document.querySelector("#editModal");
-    const editForm = document.querySelector("#editForm");
-    const editItem = document.querySelector("#editItem");
-    const editAmount = document.querySelector("#editAmount");
-    const editError = document.querySelector("#editError");
-    const cancelEditButton = document.querySelector("#cancelEditButton");
-    const saveEditButton = document.querySelector("#saveEditButton");
+      <section id="guestInfo" class="section-block">
+        <div class="section-title">
+          <p class="eyebrow">游客可浏览</p>
+          <h2>不用登录也能查看分类和记账建议</h2>
+        </div>
+        <div id="guestCards" class="guest-grid"></div>
+      </section>
+    </section>
 
-    let records = [];
-    let isAdding = false;
-    let editingId = null;
+    <section id="authView" class="view hidden">
+      <div class="auth-layout">
+        <div class="auth-intro">
+          <p class="eyebrow">账号入口</p>
+          <h1>登录后管理自己的校园账本</h1>
+          <p>测试账号：test / 123456。也可以注册一个新账号，系统会把数据按用户隔离。</p>
+        </div>
+        <div class="auth-panel">
+          <div class="tabs">
+            <button class="active" data-auth-tab="login">登录</button>
+            <button data-auth-tab="register">注册</button>
+          </div>
+          <form id="loginForm" class="stack-form">
+            <label>用户名<input name="username" value="test" required></label>
+            <label>密码<input name="password" type="password" value="123456" required></label>
+            <button class="primary-btn full" type="submit">登录</button>
+          </form>
+          <form id="registerForm" class="stack-form hidden">
+            <label>用户名<input name="username" minlength="3" required></label>
+            <label>昵称<input name="nickname" required></label>
+            <label>邮箱<input name="email" type="email" required></label>
+            <label>密码<input name="password" type="password" minlength="6" required></label>
+            <button class="primary-btn full" type="submit">注册</button>
+          </form>
+          <div id="authMessage" class="message hidden"></div>
+        </div>
+      </div>
+    </section>
 
-    function showMessage(element, message) {
-      element.textContent = message || "";
-      element.classList.toggle("hidden", !message);
-    }
+    <section id="dashboardView" class="view hidden">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">我的账本</p>
+          <h1>生活仪表盘</h1>
+        </div>
+        <button class="primary-btn" data-route="entries">新增一笔</button>
+      </div>
+      <div id="summaryCards" class="summary-grid"></div>
+      <div class="two-column">
+        <section class="surface">
+          <h2>分类支出排行</h2>
+          <div id="categoryBars" class="bar-list"></div>
+        </section>
+        <section class="surface">
+          <h2>最近账目</h2>
+          <div id="recentEntries" class="compact-list"></div>
+        </section>
+      </div>
+    </section>
 
-    function getToken() {
-      return localStorage.getItem(TOKEN_KEY);
-    }
+    <section id="entriesView" class="view hidden">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">CRUD 模块</p>
+          <h1>记账管理</h1>
+        </div>
+      </div>
+      <div class="manager-layout">
+        <form id="entryForm" class="surface form-grid">
+          <h2 id="entryFormTitle">新增账目</h2>
+          <input type="hidden" name="entry_id">
+          <label>标题<input name="title" maxlength="120" required placeholder="例如：食堂午餐"></label>
+          <label>金额<input name="amount" type="number" min="0.01" step="0.01" required placeholder="0.00"></label>
+          <label>分类<select name="category_id" required></select></label>
+          <label>类型<select name="kind"><option value="expense">支出</option><option value="income">收入</option></select></label>
+          <label>日期<input name="spent_at" type="date" required></label>
+          <label>场景<input name="scene" maxlength="40" placeholder="例如：食堂窗口"></label>
+          <label>心情<input name="mood" maxlength="20" placeholder="例如：满足"></label>
+          <label class="wide">备注<textarea name="note" maxlength="240" placeholder="写一句复盘线索"></textarea></label>
+          <div class="form-actions wide">
+            <button class="ghost-btn" type="button" id="resetEntryForm">清空</button>
+            <button class="primary-btn" type="submit">保存账目</button>
+          </div>
+          <div id="entryMessage" class="message hidden wide"></div>
+        </form>
+        <section class="surface">
+          <div class="list-toolbar">
+            <h2>账目列表</h2>
+            <select id="kindFilter">
+              <option value="">全部</option>
+              <option value="expense">支出</option>
+              <option value="income">收入</option>
+            </select>
+          </div>
+          <div id="entryList" class="entry-list"></div>
+        </section>
+      </div>
+    </section>
 
-    function setToken(token) {
-      localStorage.setItem(TOKEN_KEY, token);
-    }
+    <section id="goalsView" class="view hidden">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">校园愿望</p>
+          <h1>心愿基金</h1>
+        </div>
+      </div>
+      <div id="goalList" class="goal-grid"></div>
+    </section>
 
-    function clearToken() {
-      localStorage.removeItem(TOKEN_KEY);
-    }
+    <section id="aiView" class="view hidden">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">Flask 调用 AI</p>
+          <h1>AI 账本教练</h1>
+        </div>
+      </div>
+      <div class="ai-layout">
+        <section class="surface chat-box">
+          <div id="chatLog" class="chat-log">
+            <div class="chat-msg assistant">可以问我：“这周怎么少花一点？”或“我的账本哪里最该复盘？”</div>
+          </div>
+          <form id="aiForm" class="chat-form">
+            <input name="question" required placeholder="输入你的账本问题">
+            <button class="primary-btn" type="submit">发送</button>
+          </form>
+        </section>
+        <aside class="surface">
+          <h2>AI 集成说明</h2>
+          <p>后端封装了通义千问 DashScope 接口。配置 <code>DASHSCOPE_API_KEY</code> 后调用真实模型；未配置时使用本地演示建议，保证答辩现场可运行。</p>
+        </aside>
+      </div>
+    </section>
+  </main>
 
-    async function apiFetch(path, options = {}) {
-      const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
-      const token = getToken();
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
-      const payload = await response.json().catch(() => null);
-      if (!payload) {
-        throw new Error("服务器返回了无效数据");
-      }
-      if (!response.ok || payload.code >= 400) {
-        if (response.status === 401) {
-          clearToken();
-          showLogin();
-        }
-        throw new Error(payload.message || "请求失败");
-      }
-      return payload.data;
-    }
-
-    function showLogin() {
-      appView.classList.add("hidden");
-      loginView.classList.remove("hidden");
-      document.querySelector("#username").focus();
-    }
-
-    function showApp() {
-      loginView.classList.add("hidden");
-      appView.classList.remove("hidden");
-    }
-
-    function formatAmount(value) {
-      return Number(value || 0).toFixed(2);
-    }
-
-    function escapeHtml(value) {
-      return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-    function renderAddRow() {
-      if (!isAdding) {
-        return "";
-      }
-      return `
-        <tr class="new-row">
-          <td><input id="newItem" maxlength="120" placeholder="输入消费项"></td>
-          <td><input id="newAmount" type="number" min="0.01" step="0.01" placeholder="0.00"></td>
-          <td>保存后生成</td>
-          <td>
-            <div class="row-actions">
-              <button class="success-btn" type="button" data-action="save-new">保存</button>
-              <button class="plain-btn" type="button" data-action="cancel-new">取消</button>
-            </div>
-          </td>
-        </tr>
-      `;
-    }
-
-    function renderRecords() {
-      recordsBody.innerHTML = renderAddRow() + records.map((record) => `
-        <tr>
-          <td>${escapeHtml(record.item_name)}</td>
-          <td class="amount-cell">${formatAmount(record.amount)}</td>
-          <td>${escapeHtml(record.created_at)}</td>
-          <td>
-            <div class="row-actions">
-              <button class="plain-btn" type="button" data-action="edit" data-id="${record.id}">修改</button>
-              <button class="danger-btn" type="button" data-action="delete" data-id="${record.id}">删除</button>
-            </div>
-          </td>
-        </tr>
-      `).join("");
-
-      const total = records.reduce((sum, record) => sum + Number(record.amount || 0), 0);
-      totalAmount.textContent = formatAmount(total);
-      emptyState.classList.toggle("hidden", records.length > 0 || isAdding);
-      addButton.disabled = isAdding;
-
-      if (isAdding) {
-        document.querySelector("#newItem").focus();
-      }
-    }
-
-    async function loadRecords() {
-      showMessage(globalError, "");
-      const data = await apiFetch("/api/records");
-      records = data.records || [];
-      todayLabel.textContent = `${data.date} 北京时间`;
-      renderRecords();
-    }
-
-    async function handleLogin(event) {
-      event.preventDefault();
-      showMessage(loginError, "");
-      loginButton.disabled = true;
-      try {
-        const formData = new FormData(loginForm);
-        const data = await apiFetch("/api/auth/login", {
-          method: "POST",
-          body: JSON.stringify({
-            username: formData.get("username"),
-            password: formData.get("password"),
-          }),
-        });
-        setToken(data.access_token);
-        showApp();
-        await loadRecords();
-      } catch (error) {
-        showMessage(loginError, error.message);
-      } finally {
-        loginButton.disabled = false;
-      }
-    }
-
-    async function saveNewRecord() {
-      const itemInput = document.querySelector("#newItem");
-      const amountInput = document.querySelector("#newAmount");
-      const itemName = itemInput.value.trim();
-      const amount = amountInput.value;
-
-      showMessage(globalError, "");
-      if (!itemName || !amount) {
-        showMessage(globalError, "消费项和金额不能为空");
-        return;
-      }
-
-      await apiFetch("/api/records", {
-        method: "POST",
-        body: JSON.stringify({ item_name: itemName, amount }),
-      });
-      isAdding = false;
-      await loadRecords();
-    }
-
-    function openEditModal(recordId) {
-      const record = records.find((item) => item.id === recordId);
-      if (!record) {
-        return;
-      }
-      editingId = recordId;
-      editItem.value = record.item_name;
-      editAmount.value = formatAmount(record.amount);
-      showMessage(editError, "");
-      editModal.classList.remove("hidden");
-      editItem.focus();
-      editItem.select();
-    }
-
-    function closeEditModal() {
-      editModal.classList.add("hidden");
-      editingId = null;
-      editForm.reset();
-      showMessage(editError, "");
-    }
-
-    async function handleEditSubmit(event) {
-      event.preventDefault();
-      if (!editingId) {
-        return;
-      }
-
-      saveEditButton.disabled = true;
-      showMessage(editError, "");
-      try {
-        await apiFetch(`/api/records/${editingId}`, {
-          method: "PUT",
-          body: JSON.stringify({
-            item_name: editItem.value.trim(),
-            amount: editAmount.value,
-          }),
-        });
-        closeEditModal();
-        await loadRecords();
-      } catch (error) {
-        showMessage(editError, error.message);
-      } finally {
-        saveEditButton.disabled = false;
-      }
-    }
-
-    async function deleteRecord(recordId) {
-      const record = records.find((item) => item.id === recordId);
-      if (!record) {
-        return;
-      }
-      if (!confirm(`确定删除“${record.item_name}”吗？`)) {
-        return;
-      }
-
-      showMessage(globalError, "");
-      await apiFetch(`/api/records/${recordId}`, { method: "DELETE" });
-      await loadRecords();
-    }
-
-    loginForm.addEventListener("submit", handleLogin);
-
-    addButton.addEventListener("click", () => {
-      isAdding = true;
-      showMessage(globalError, "");
-      renderRecords();
-    });
-
-    logoutButton.addEventListener("click", () => {
-      clearToken();
-      records = [];
-      isAdding = false;
-      loginForm.reset();
-      showLogin();
-    });
-
-    recordsBody.addEventListener("click", async (event) => {
-      const button = event.target.closest("button[data-action]");
-      if (!button) {
-        return;
-      }
-
-      const action = button.dataset.action;
-      const recordId = Number(button.dataset.id);
-      try {
-        if (action === "save-new") {
-          await saveNewRecord();
-        } else if (action === "cancel-new") {
-          isAdding = false;
-          showMessage(globalError, "");
-          renderRecords();
-        } else if (action === "edit") {
-          openEditModal(recordId);
-        } else if (action === "delete") {
-          await deleteRecord(recordId);
-        }
-      } catch (error) {
-        showMessage(globalError, error.message);
-      }
-    });
-
-    cancelEditButton.addEventListener("click", closeEditModal);
-    editForm.addEventListener("submit", handleEditSubmit);
-    editModal.addEventListener("click", (event) => {
-      if (event.target === editModal) {
-        closeEditModal();
-      }
-    });
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && !editModal.classList.contains("hidden")) {
-        closeEditModal();
-      }
-    });
-
-    if (getToken()) {
-      showApp();
-      loadRecords().catch((error) => {
-        showMessage(globalError, error.message);
-      });
-    } else {
-      showLogin();
-    }
-  </script>
+  <script src="/static/js/app.js"></script>
 </body>
 </html>

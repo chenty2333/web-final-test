@@ -4,6 +4,7 @@ __pycache__/
 venv/
 instance/
 ledger.db
+*.db
 *.sqlite
 *.sqlite3
 *.log
@@ -13,3 +14,7 @@ design_doc_assets/
 design_doc_render*/
 lo_convert*/
 lo_profile*/
+_doc_build_assets/
+_render_*/
+_lo_*/
+_qa_*.png
