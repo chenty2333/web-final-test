@@ -6,6 +6,7 @@ from pathlib import Path
 
 from flask import Flask, send_from_directory
 from flask_cors import CORS
+from sqlalchemy import text
 
 from .config import resolve_config
 from .errors import register_error_handlers
@@ -59,10 +60,20 @@ def create_app(config_overrides=None):
 
     with app.app_context():
         db.create_all()
+        ensure_schema_compatibility()
         if app.config.get("SEED_DATABASE", True):
             seed_demo_data()
 
     return app
+
+
+def ensure_schema_compatibility():
+    if db.engine.dialect.name != "sqlite":
+        return
+    with db.engine.begin() as connection:
+        category_columns = {row[1] for row in connection.execute(text("PRAGMA table_info(categories)")).fetchall()}
+        if "user_id" not in category_columns:
+            connection.execute(text("ALTER TABLE categories ADD COLUMN user_id INTEGER REFERENCES users(id)"))
 
 
 def configure_logging(app):

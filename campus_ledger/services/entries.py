@@ -24,15 +24,25 @@ def build_summary(user_id, month_label, start, end):
     for entry in entries:
         if entry.kind != "expense":
             continue
-        name = entry.category.name if entry.category else "未分类"
-        by_category[name] = by_category.get(name, Decimal("0")) + entry.amount
+        category_id = entry.category_id
+        if category_id not in by_category:
+            by_category[category_id] = {
+                "name": entry.category.name if entry.category else "未分类",
+                "amount": Decimal("0"),
+            }
+        by_category[category_id]["amount"] += entry.amount
 
     budget_usage = []
-    for category in Category.query.order_by(Category.sort_order).all():
+    categories = (
+        Category.query.filter((Category.user_id.is_(None)) | (Category.user_id == user_id))
+        .order_by(Category.sort_order, Category.id)
+        .all()
+    )
+    for category in categories:
         limit = category.monthly_limit or Decimal("0")
         if limit <= 0:
             continue
-        amount = by_category.get(category.name, Decimal("0"))
+        amount = by_category.get(category.id, {}).get("amount", Decimal("0"))
         budget_usage.append(
             {
                 "name": category.name,
@@ -58,7 +68,7 @@ def build_summary(user_id, month_label, start, end):
         if label in trend:
             trend[label][entry.kind] += float(entry.amount)
 
-    top_category = max(by_category, key=by_category.get) if by_category else ""
+    top_item = max(by_category.values(), key=lambda item: item["amount"]) if by_category else None
     return {
         "month": month_label,
         "date_range": {
@@ -69,10 +79,10 @@ def build_summary(user_id, month_label, start, end):
         "expense": float(expense),
         "balance": float(income - expense),
         "entry_count": len(entries),
-        "top_category": top_category,
+        "top_category": top_item["name"] if top_item else "",
         "category_totals": [
-            {"name": name, "amount": float(amount)}
-            for name, amount in sorted(by_category.items(), key=lambda item: item[1], reverse=True)
+            {"name": item["name"], "amount": float(item["amount"])}
+            for item in sorted(by_category.values(), key=lambda item: item["amount"], reverse=True)
         ],
         "budget_usage": budget_usage,
         "monthly_trend": [trend[key] for key in sorted(trend)],
@@ -129,7 +139,14 @@ def get_entry(user_id, entry_id):
     return row
 
 
-def normalize_entry_payload(data, partial=False):
+def get_usable_category(user_id, category_id):
+    return Category.query.filter(
+        Category.id == category_id,
+        (Category.user_id.is_(None)) | (Category.user_id == user_id),
+    ).first()
+
+
+def normalize_entry_payload(user_id, data, partial=False):
     if not isinstance(data, dict):
         raise ApiError("请求体必须是 JSON 对象")
     payload = {}
@@ -147,7 +164,7 @@ def normalize_entry_payload(data, partial=False):
         payload["amount"] = parse_money(data.get("amount"), positive=True)
     if "category_id" in data:
         category_id = parse_int(data.get("category_id"), "分类")
-        category = db.session.get(Category, category_id)
+        category = get_usable_category(user_id, category_id)
         if category is None:
             raise ApiError("分类不存在")
         payload["category_id"] = category.id
@@ -167,7 +184,7 @@ def normalize_entry_payload(data, partial=False):
 
 
 def create_entry(user_id, data):
-    row = LedgerEntry(user_id=user_id, **normalize_entry_payload(data))
+    row = LedgerEntry(user_id=user_id, **normalize_entry_payload(user_id, data))
     db.session.add(row)
     db.session.commit()
     return row
@@ -175,7 +192,7 @@ def create_entry(user_id, data):
 
 def update_entry(user_id, entry_id, data):
     row = get_entry(user_id, entry_id)
-    for key, value in normalize_entry_payload(data, partial=True).items():
+    for key, value in normalize_entry_payload(user_id, data, partial=True).items():
         setattr(row, key, value)
     db.session.commit()
     return row

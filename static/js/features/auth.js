@@ -7,6 +7,7 @@ export function updateAuthUi() {
   $("#userBadge").classList.toggle("hidden", !authed);
   $("#userBadge").textContent = authed ? `你好，${state.user.nickname}` : "";
   $("#logoutButton").classList.toggle("hidden", !authed);
+  $("#profileButton").classList.toggle("hidden", !authed);
   $("#authNavButton").classList.toggle("hidden", authed);
   $$("[data-auth-only]").forEach((button) => {
     button.disabled = !authed;
@@ -28,6 +29,7 @@ export async function loadMe() {
 export function clearAuth() {
   clearToken();
   state.user = null;
+  state.ledgerSettingsLoaded = false;
   updateAuthUi();
 }
 

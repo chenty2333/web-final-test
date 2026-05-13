@@ -193,7 +193,7 @@ textarea:focus {
 }
 
 main {
-  width: min(1180px, calc(100% - 32px));
+  width: min(1660px, calc(100% - 36px));
   margin: 0 auto;
   padding: 30px 0 56px;
 }
@@ -212,7 +212,10 @@ main {
 .ai-layout,
 .chart-grid,
 .two-column,
-.manager-layout {
+.manager-layout,
+.settings-layout,
+.goals-layout,
+.community-layout {
   display: grid;
   gap: 22px;
 }
@@ -224,7 +227,8 @@ main {
 
 .auth-layout,
 .ai-layout {
-  grid-template-columns: minmax(0, 0.85fr) minmax(360px, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.75fr);
+  align-items: start;
 }
 
 .chart-grid {
@@ -238,6 +242,20 @@ main {
 
 .manager-layout {
   grid-template-columns: minmax(360px, 0.8fr) minmax(0, 1.2fr);
+}
+
+.settings-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.85fr);
+}
+
+.goals-layout {
+  grid-template-columns: minmax(0, 1.2fr) minmax(420px, 0.8fr);
+  align-items: start;
+}
+
+.community-layout {
+  grid-template-columns: minmax(320px, 0.55fr) minmax(0, 1fr) minmax(380px, 0.75fr);
+  align-items: start;
 }
 
 .hero-copy,
@@ -605,6 +623,14 @@ label {
   gap: 10px;
 }
 
+.inline-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+
 .list-toolbar {
   display: flex;
   align-items: center;
@@ -650,6 +676,13 @@ label {
 .goal-card {
   display: grid;
   gap: 12px;
+  cursor: pointer;
+}
+
+.goal-card.active,
+.post-card.active {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
 }
 
 .progress {
@@ -663,7 +696,151 @@ label {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--violet), var(--gold));
+  background: linear-gradient(90deg, #16a34a, #22c55e);
+}
+
+.progress.warn span {
+  background: linear-gradient(90deg, #f59e0b, #facc15);
+}
+
+.progress.danger span {
+  background: linear-gradient(90deg, #ef4444, #f97316);
+}
+
+.progress.good span {
+  background: linear-gradient(90deg, #0f766e, #22c55e);
+}
+
+.chip-list,
+.chips,
+.mini-list {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.chip-row,
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px 10px;
+}
+
+.chip-row {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.chip {
+  color: var(--text);
+  font-weight: 750;
+}
+
+.color-dot {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  border-radius: 50%;
+}
+
+.option-manager,
+.option-group,
+.goal-detail,
+.deposit-list,
+.post-list,
+.comment-list,
+.ai-side,
+.ai-context,
+.profile-summary {
+  display: grid;
+  gap: 12px;
+}
+
+.muted-panel {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.profile-line,
+.goal-detail-head,
+.deposit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfdff;
+  padding: 12px;
+}
+
+.profile-line span,
+.deposit-row small {
+  color: var(--muted);
+}
+
+.deposit-row div {
+  display: grid;
+  gap: 3px;
+}
+
+.compact-form {
+  margin-bottom: 18px;
+}
+
+.post-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  padding: 16px;
+  cursor: pointer;
+}
+
+.post-card h3 {
+  margin: 8px 0;
+}
+
+.post-card p {
+  margin: 0;
+}
+
+.topic {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: var(--mint);
+  padding: 4px 9px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.post-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.comment-row {
+  border-left: 3px solid var(--line);
+  padding-left: 12px;
+}
+
+.comment-row p {
+  margin: 4px 0;
+}
+
+.quick-prompts {
+  display: grid;
+  gap: 8px;
 }
 
 .chat-box {
@@ -688,6 +865,48 @@ label {
   padding: 12px 14px;
   line-height: 1.65;
   white-space: pre-wrap;
+}
+
+.rich-text {
+  white-space: normal;
+}
+
+.rich-text p {
+  margin: 0 0 10px;
+  color: inherit;
+}
+
+.rich-text p:last-child {
+  margin-bottom: 0;
+}
+
+.rich-text h3,
+.rich-text h4,
+.rich-text h5 {
+  margin: 4px 0 8px;
+  color: inherit;
+}
+
+.rich-text ol,
+.rich-text ul {
+  margin: 8px 0 10px;
+  padding-left: 24px;
+}
+
+.rich-text li {
+  margin: 6px 0;
+}
+
+.rich-text strong {
+  font-weight: 900;
+}
+
+.math {
+  display: inline-block;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 1px 5px;
+  font-family: "Cambria Math", "Times New Roman", serif;
 }
 
 .chat-msg.assistant {
@@ -726,6 +945,9 @@ code {
   .chart-grid,
   .two-column,
   .manager-layout,
+  .settings-layout,
+  .goals-layout,
+  .community-layout,
   .guest-grid,
   .summary-grid,
   .goal-grid {
@@ -744,7 +966,8 @@ code {
   }
 
   .form-grid,
-  .chat-form {
+  .chat-form,
+  .inline-form {
     grid-template-columns: 1fr;
   }
 

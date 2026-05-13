@@ -1,7 +1,14 @@
 import { apiFetch } from "../core/api.js";
 import { $ } from "../core/dom.js";
-import { currentMonth, queryString } from "../core/format.js";
+import { currentMonth, html, money, queryString, richText } from "../core/format.js";
 import state from "../core/state.js";
+
+export async function loadAiView() {
+  const month = state.selectedMonth || $("#dashboardMonth").value || currentMonth();
+  const data = await apiFetch(`/api/summary${queryString({ month })}`);
+  state.summary = data.summary;
+  renderAiContext();
+}
 
 export async function askAi(event) {
   event.preventDefault();
@@ -17,16 +24,41 @@ export async function askAi(event) {
       method: "POST",
       body: JSON.stringify({ question }),
     });
-    pending.textContent = data.answer;
+    pending.innerHTML = richText(data.answer);
+    pending.classList.add("rich-text");
   } catch (error) {
     pending.textContent = error.message;
   }
 }
 
+export function applyQuickPrompt(prompt) {
+  const input = $("#aiForm").elements.question;
+  input.value = prompt;
+  input.focus();
+}
+
+function renderAiContext() {
+  const summary = state.summary || {};
+  const categories = summary.category_totals || [];
+  $("#aiContext").innerHTML = `
+    <div class="profile-line"><span>收入</span><strong>${money(summary.income)}</strong></div>
+    <div class="profile-line"><span>支出</span><strong>${money(summary.expense)}</strong></div>
+    <div class="profile-line"><span>结余</span><strong>${money(summary.balance)}</strong></div>
+    <div class="mini-list">
+      ${categories.slice(0, 4).map((item) => `<span>${html(item.name)} · ${money(item.amount)}</span>`).join("") || "<span>暂无分类支出</span>"}
+    </div>
+  `;
+}
+
 function appendChat(role, text) {
   const node = document.createElement("div");
   node.className = `chat-msg ${role}`;
-  node.textContent = text;
+  if (role === "assistant") {
+    node.innerHTML = richText(text);
+    node.classList.add("rich-text");
+  } else {
+    node.textContent = text;
+  }
   $("#chatLog").append(node);
   node.scrollIntoView({ block: "end", behavior: "smooth" });
 }

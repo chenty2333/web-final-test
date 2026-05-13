@@ -4,11 +4,11 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 
 from .extensions import db
-from .models import Category, LedgerEntry, SavingGoal, User
+from .models import Category, CommunityComment, CommunityPost, EntryOption, LedgerEntry, SavingGoal, SavingGoalDeposit, User
 
 
 USERS = [
-    ("test", "测试同学", "test@example.com", "123456"),
+    ("test", "星芒用户", "test@example.com", "123456"),
     ("linxi", "林溪", "linxi@example.com", "123456"),
     ("moyu", "莫雨", "moyu@example.com", "123456"),
     ("chenfan", "陈帆", "chenfan@example.com", "123456"),
@@ -39,6 +39,9 @@ TIPS = [
     "每周固定一次账本复盘，比每天纠结更适合大学生活节奏。",
     "社交聚餐建议设置月度上限，避免一次活动打乱整月预算。",
 ]
+
+SCENES = ["食堂窗口", "自习室", "打印店", "校外聚餐", "城市出行", "操场", "宿舍", "咖啡店", "跳蚤群", "社团活动"]
+MOODS = ["开心", "平稳", "认真", "满足", "轻松", "惊喜", "务实", "提神", "有趣", "克制"]
 
 
 def seed_demo_data():
@@ -120,4 +123,47 @@ def seed_demo_data():
                     deadline=deadline,
                 )
             )
+        db.session.commit()
+
+    if test_user and EntryOption.query.filter_by(user_id=test_user.id).count() == 0:
+        for order, name in enumerate(SCENES, start=1):
+            db.session.add(EntryOption(user_id=test_user.id, kind="scene", name=name, sort_order=order))
+        for order, name in enumerate(MOODS, start=1):
+            db.session.add(EntryOption(user_id=test_user.id, kind="mood", name=name, sort_order=order))
+        db.session.commit()
+
+    if test_user and SavingGoalDeposit.query.filter_by(user_id=test_user.id).count() == 0:
+        today = datetime.now().replace(hour=12, minute=0, second=0, microsecond=0)
+        notes = ["月初固定转入", "兼职结余", "少喝奶茶省下", "周末未外出", "二手闲置收入"]
+        for goal in SavingGoal.query.filter_by(user_id=test_user.id).order_by(SavingGoal.id).all():
+            first = (goal.saved_amount * Decimal("0.45")).quantize(Decimal("0.01"))
+            second = goal.saved_amount - first
+            for amount, offset, note in [(first, goal.id + 2, notes[goal.id % len(notes)]), (second, goal.id + 9, notes[(goal.id + 1) % len(notes)])]:
+                if amount > 0:
+                    db.session.add(
+                        SavingGoalDeposit(
+                            user_id=test_user.id,
+                            goal_id=goal.id,
+                            amount=amount,
+                            deposited_at=today - timedelta(days=offset),
+                            note=note,
+                        )
+                    )
+        db.session.commit()
+
+    if CommunityPost.query.count() == 0:
+        users = User.query.order_by(User.id).limit(5).all()
+        posts = [
+            ("一周食堂预算怎么控到 120 元", "把早餐固定成豆浆加主食，午餐只选基础窗口，想喝奶茶时先存 8 元到心愿基金。", "省钱技巧"),
+            ("社团活动怎么记账不漏", "我会把海报、交通、聚餐分开记，备注写活动名，月底就能看出社团真实成本。", "社团生活"),
+            ("心愿基金比普通存钱更有动力", "给耳机和旅行分别建目标，每次少花一点就记一笔存入，进度条会很直观。", "心愿基金"),
+            ("数码装备冷静期有用", "加入购物车后等 72 小时，再看是不是刚需，最近少买了两个配件。", "消费复盘"),
+            ("兼职收入不要直接花完", "到账当天先转 30% 到备用金，剩下再安排学习资料和社交预算。", "收入规划"),
+        ]
+        for idx, (title, content, topic) in enumerate(posts):
+            user = users[idx % len(users)]
+            post = CommunityPost(user_id=user.id, title=title, content=content, topic=topic, likes_count=idx + 2)
+            db.session.add(post)
+            db.session.flush()
+            db.session.add(CommunityComment(post_id=post.id, user_id=test_user.id, content="这个方法可以直接抄到我的账本里。"))
         db.session.commit()

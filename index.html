@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>星芒账本 - 创意型大学生生活记账本</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/css/app.css">
 </head>
 <body>
@@ -20,10 +21,12 @@
       <button data-route="dashboard" data-auth-only>仪表盘</button>
       <button data-route="entries" data-auth-only>记账管理</button>
       <button data-route="goals" data-auth-only>心愿基金</button>
+      <button data-route="community" data-auth-only>交流社区</button>
       <button data-route="ai" data-auth-only>AI 账本教练</button>
     </nav>
     <div class="account-actions">
       <span id="userBadge" class="user-badge hidden"></span>
+      <button id="profileButton" class="ghost-btn hidden" data-route="profile">资料</button>
       <button id="authNavButton" class="primary-btn" data-route="auth">登录 / 注册</button>
       <button id="logoutButton" class="ghost-btn hidden">退出</button>
     </div>
@@ -102,6 +105,32 @@
       </div>
     </section>
 
+    <section id="profileView" class="view hidden">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">账号设置</p>
+          <h1>个人资料</h1>
+        </div>
+      </div>
+      <div class="settings-layout">
+        <form id="profileForm" class="surface form-grid">
+          <h2>基础资料</h2>
+          <label>昵称<input name="nickname" maxlength="80" autocomplete="nickname" required></label>
+          <label>邮箱<input name="email" type="email" inputmode="email" autocomplete="email" required></label>
+          <label>当前密码<input name="current_password" type="password" autocomplete="current-password" placeholder="修改密码时填写"></label>
+          <label>新密码<input name="new_password" type="password" minlength="6" autocomplete="new-password" placeholder="保持不变可留空"></label>
+          <div class="form-actions wide">
+            <button class="primary-btn" type="submit">保存资料</button>
+          </div>
+          <div id="profileMessage" class="message hidden wide"></div>
+        </form>
+        <section class="surface">
+          <h2>账号状态</h2>
+          <div id="profileSummary" class="profile-summary"></div>
+        </section>
+      </div>
+    </section>
+
     <section id="dashboardView" class="view hidden">
       <div class="page-heading">
         <div>
@@ -152,9 +181,11 @@
           <label>分类<select name="category_id" required></select></label>
           <label>类型<select name="kind"><option value="expense">支出</option><option value="income">收入</option></select></label>
           <label>日期<input name="spent_at" type="date" required></label>
-          <label>场景<input name="scene" maxlength="40" autocomplete="off" placeholder="例如：食堂窗口"></label>
-          <label>心情<input name="mood" maxlength="20" autocomplete="off" placeholder="例如：满足"></label>
+          <label>场景（可选）<input name="scene" list="sceneOptions" maxlength="40" autocomplete="off" placeholder="例如：食堂窗口"></label>
+          <label>心情（可选）<input name="mood" list="moodOptions" maxlength="20" autocomplete="off" placeholder="例如：满足"></label>
           <label class="wide">备注<textarea name="note" maxlength="240" enterkeyhint="done" placeholder="写一句复盘线索"></textarea></label>
+          <datalist id="sceneOptions"></datalist>
+          <datalist id="moodOptions"></datalist>
           <div class="form-actions wide">
             <button class="ghost-btn" type="button" id="resetEntryForm">清空</button>
             <button class="primary-btn" type="submit">保存账目</button>
@@ -178,6 +209,36 @@
           <div id="entryPager" class="pager"></div>
         </section>
       </div>
+      <div class="settings-layout section-block">
+        <section class="surface">
+          <div class="list-toolbar">
+            <h2>分类管理</h2>
+            <small>新增的分类只影响自己的账本</small>
+          </div>
+          <form id="categoryForm" class="inline-form">
+            <input type="hidden" name="category_id">
+            <label>名称<input name="name" maxlength="40" required placeholder="例如：宠物开销"></label>
+            <label>图标<input name="icon" maxlength="4" required placeholder="宠"></label>
+            <label>颜色<input name="color" type="color" value="#1d4ed8" required></label>
+            <label>月预算<input name="monthly_limit" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></label>
+            <button class="primary-btn" type="submit">保存分类</button>
+          </form>
+          <div id="categoryManager" class="chip-list"></div>
+          <div id="categoryMessage" class="message hidden"></div>
+        </section>
+        <section class="surface">
+          <h2>场景和心情</h2>
+          <div class="option-manager">
+            <form id="optionForm" class="inline-form">
+              <label>类型<select name="kind"><option value="scene">场景</option><option value="mood">心情</option></select></label>
+              <label>名称<input name="name" maxlength="40" required placeholder="例如：图书馆"></label>
+              <button class="primary-btn" type="submit">添加</button>
+            </form>
+            <div id="optionManager" class="chip-list"></div>
+            <div id="optionMessage" class="message hidden"></div>
+          </div>
+        </section>
+      </div>
     </section>
 
     <section id="goalsView" class="view hidden">
@@ -187,7 +248,64 @@
           <h1>心愿基金</h1>
         </div>
       </div>
-      <div id="goalList" class="goal-grid"></div>
+      <div class="goals-layout">
+        <section class="surface">
+          <form id="goalForm" class="form-grid compact-form">
+            <h2>新建心愿</h2>
+            <label>目标名称<input name="name" maxlength="100" required placeholder="例如：寒假旅行"></label>
+            <label>目标金额<input name="target_amount" type="number" min="0.01" step="0.01" inputmode="decimal" required placeholder="0.00"></label>
+            <label>当前已存<input name="saved_amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></label>
+            <label>截止日期<input name="deadline" type="date" required></label>
+            <button class="primary-btn wide" type="submit">创建心愿基金</button>
+            <div id="goalMessage" class="message hidden wide"></div>
+          </form>
+          <div id="goalList" class="goal-grid"></div>
+        </section>
+        <aside class="surface">
+          <h2 id="goalDetailTitle">选择一个心愿</h2>
+          <div id="goalDetail" class="goal-detail muted-panel">点击左侧卡片查看每一笔存入记录。</div>
+          <form id="goalDepositForm" class="stack-form hidden">
+            <label>存入金额<input name="amount" type="number" min="0.01" step="0.01" inputmode="decimal" required placeholder="0.00"></label>
+            <label>日期<input name="deposited_at" type="date" required></label>
+            <label>备注<input name="note" maxlength="160" autocomplete="off" placeholder="例如：兼职结余"></label>
+            <button class="primary-btn" type="submit">记录存入</button>
+          </form>
+          <div id="goalDepositMessage" class="message hidden"></div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="communityView" class="view hidden">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">校园交流</p>
+          <h1>记账社区</h1>
+        </div>
+      </div>
+      <div class="community-layout">
+        <section class="surface">
+          <form id="postForm" class="stack-form">
+            <h2>分享一条经验</h2>
+            <label>标题<input name="title" maxlength="120" required placeholder="例如：本周怎么少花 50 元"></label>
+            <label>话题<input name="topic" maxlength="40" required placeholder="例如：省钱技巧"></label>
+            <label>内容<textarea name="content" maxlength="1200" required placeholder="写下预算方法、踩坑或心愿基金经验"></textarea></label>
+            <button class="primary-btn" type="submit">发布</button>
+            <div id="postMessage" class="message hidden"></div>
+          </form>
+        </section>
+        <section class="surface">
+          <div class="list-toolbar"><h2>社区动态</h2><div id="communityPager" class="pager compact-pager"></div></div>
+          <div id="postList" class="post-list"></div>
+        </section>
+        <aside class="surface">
+          <h2 id="postDetailTitle">帖子详情</h2>
+          <div id="postDetail" class="muted-panel">选择一条帖子查看评论。</div>
+          <form id="commentForm" class="chat-form hidden">
+            <input name="content" maxlength="500" autocomplete="off" required placeholder="写一条评论">
+            <button class="primary-btn" type="submit">评论</button>
+          </form>
+          <div id="commentMessage" class="message hidden"></div>
+        </aside>
     </section>
 
     <section id="aiView" class="view hidden">
@@ -207,9 +325,23 @@
             <button class="primary-btn" type="submit">发送</button>
           </form>
         </section>
-        <aside class="surface">
-          <h2>复盘方向</h2>
-          <p>围绕本月收支、分类排行和预算使用情况，给出更适合校园生活的消费复盘和储蓄建议。</p>
+        <aside class="ai-side">
+          <section class="surface">
+            <h2>复盘方向</h2>
+            <p>围绕本月收支、分类排行和预算使用情况，给出更适合校园生活的消费复盘和储蓄建议。</p>
+          </section>
+          <section class="surface">
+            <h2>本月上下文</h2>
+            <div id="aiContext" class="ai-context"></div>
+          </section>
+          <section class="surface">
+            <h2>快捷提问</h2>
+            <div class="quick-prompts">
+              <button class="ghost-btn" type="button" data-ai-prompt="这周怎么少花一点？">少花一点</button>
+              <button class="ghost-btn" type="button" data-ai-prompt="我最应该复盘哪类支出？">复盘重点</button>
+              <button class="ghost-btn" type="button" data-ai-prompt="怎么把心愿基金存得更稳定？">心愿基金</button>
+            </div>
+          </section>
         </aside>
       </div>
     </section>

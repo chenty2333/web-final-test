@@ -1,4 +1,4 @@
-from campus_ledger.models import Category, LedgerEntry, SavingGoal, User
+from campus_ledger.models import Category, CommunityPost, EntryOption, LedgerEntry, SavingGoal, SavingGoalDeposit, User
 
 
 def expect_json(response, status_code=200, code=None):
@@ -16,6 +16,9 @@ def test_seed_data_counts(app):
         assert Category.query.count() >= 10
         assert LedgerEntry.query.count() >= 10
         assert SavingGoal.query.count() >= 10
+        assert EntryOption.query.count() >= 10
+        assert SavingGoalDeposit.query.count() >= 10
+        assert CommunityPost.query.count() >= 5
 
 
 def test_public_and_auth_flow(client):
@@ -62,6 +65,77 @@ def test_entry_crud_and_validation(client, auth_headers):
 
     expect_json(client.get("/api/entries?category_id=abc", headers=auth_headers), 400, 400)
     expect_json(client.get("/api/summary?month=2026/05", headers=auth_headers), 400, 400)
+
+
+def test_profile_category_and_options(client, auth_headers):
+    profile = expect_json(
+        client.put("/api/auth/me", headers=auth_headers, json={"nickname": "星芒用户新版", "email": "test@example.com"})
+    )["data"]["user"]
+    assert profile["nickname"] == "星芒用户新版"
+
+    category = expect_json(
+        client.post(
+            "/api/categories",
+            headers=auth_headers,
+            json={"name": "宠物开销", "icon": "宠", "color": "#0f766e", "monthly_limit": "120.00"},
+        ),
+        201,
+        201,
+    )["data"]["category"]
+    assert category["user_owned"] is True
+    updated = expect_json(
+        client.put(f"/api/categories/{category['id']}", headers=auth_headers, json={"monthly_limit": "150.00"})
+    )["data"]["category"]
+    assert updated["monthly_limit"] == 150.0
+
+    option = expect_json(
+        client.post("/api/entry-options", headers=auth_headers, json={"kind": "scene", "name": "图书馆"}),
+        201,
+        201,
+    )["data"]["option"]
+    assert option["name"] == "图书馆"
+    expect_json(client.delete(f"/api/entry-options/{option['id']}", headers=auth_headers))
+    expect_json(client.delete(f"/api/categories/{category['id']}", headers=auth_headers))
+
+
+def test_goals_deposits_and_community(client, auth_headers):
+    goal = expect_json(
+        client.post(
+            "/api/goals",
+            headers=auth_headers,
+            json={"name": "测试旅行", "target_amount": "1000.00", "saved_amount": "100.00", "deadline": "2026-07-01"},
+        ),
+        201,
+        201,
+    )["data"]["goal"]
+    deposit = expect_json(
+        client.post(
+            f"/api/goals/{goal['id']}/deposits",
+            headers=auth_headers,
+            json={"amount": "50.00", "deposited_at": "2026-05-13", "note": "测试存入"},
+        ),
+        201,
+        201,
+    )["data"]["deposit"]
+    detail = expect_json(client.get(f"/api/goals/{goal['id']}", headers=auth_headers))["data"]
+    assert any(item["id"] == deposit["id"] for item in detail["deposits"])
+
+    post = expect_json(
+        client.post(
+            "/api/community/posts",
+            headers=auth_headers,
+            json={"title": "测试省钱方法", "topic": "省钱技巧", "content": "把小额消费拆出来复盘，月底更清楚。"},
+        ),
+        201,
+        201,
+    )["data"]["post"]
+    expect_json(
+        client.post(f"/api/community/posts/{post['id']}/comments", headers=auth_headers, json={"content": "这个方法有用。"}),
+        201,
+        201,
+    )
+    liked = expect_json(client.post(f"/api/community/posts/{post['id']}/like", headers=auth_headers))["data"]["post"]
+    assert liked["likes_count"] >= 1
 
 
 def test_ai_fallback(client, auth_headers):

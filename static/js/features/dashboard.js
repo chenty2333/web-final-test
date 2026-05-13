@@ -75,14 +75,17 @@ function renderTrendChart(rows) {
 function renderBudgetChart(rows) {
   $("#budgetChart").innerHTML = rows
     .slice(0, 6)
-    .map((item) => `
+    .map((item) => {
+      const cls = item.rate >= 85 ? "danger" : item.rate >= 60 ? "warn" : "good";
+      return `
       <div class="budget-item">
         <div class="budget-meta">
           <span>${html(item.name)}</span>
           <strong>${money(item.amount)} / ${money(item.limit)}</strong>
         </div>
-        <div class="progress"><span style="width:${Math.max(4, item.rate)}%"></span></div>
+        <div class="progress ${cls}"><span style="width:${Math.max(4, item.rate)}%"></span></div>
       </div>
-    `)
+    `;
+    })
     .join("") || `<p>暂无预算数据。</p>`;
 }
