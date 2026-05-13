@@ -3,6 +3,12 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+load_dotenv(PROJECT_ROOT / ".env")
+
 
 def env_bool(name, default=False):
     value = os.environ.get(name)

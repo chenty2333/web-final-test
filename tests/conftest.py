@@ -6,7 +6,8 @@ from campus_ledger import create_app
 
 
 @pytest.fixture()
-def app(tmp_path):
+def app(tmp_path, monkeypatch):
+    monkeypatch.delenv("DASHSCOPE_API_KEY", raising=False)
     db_path = tmp_path / "test_campus_ledger.db"
     app = create_app(
         {

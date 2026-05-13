@@ -16,7 +16,7 @@ class CampusAiClient:
 
     def __init__(self):
         self.api_key = os.environ.get("DASHSCOPE_API_KEY", "").strip()
-        self.model = os.environ.get("DASHSCOPE_MODEL", "qwen-plus")
+        self.model = os.environ.get("DASHSCOPE_MODEL", "qwen3.6-plus")
         self.endpoint = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
 
     def chat(self, question, context):

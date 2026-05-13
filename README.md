@@ -41,7 +41,7 @@ $env:SECRET_KEY="换成另一个长随机密钥"
 .\scripts\run_waitress.ps1
 ```
 
-生产配置优先读取环境变量，参考 `.env.example`。真实 AI 调用需要设置 `DASHSCOPE_API_KEY`，模型默认 `qwen-plus`。
+生产配置优先读取环境变量，参考 `.env.example`。真实 AI 调用需要设置 `DASHSCOPE_API_KEY`，模型默认 `qwen3.6-plus`。
 
 ## 结构
 
