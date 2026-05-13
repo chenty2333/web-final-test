@@ -24,6 +24,20 @@ def env_list(name, default):
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def resolve_database_url(database_url, instance_path):
+    if not database_url:
+        database_path = Path(instance_path) / "campus_ledger.db"
+    elif database_url.startswith("sqlite:///") and database_url != "sqlite:///:memory:":
+        database_name = database_url.removeprefix("sqlite:///")
+        database_path = Path(database_name)
+        if not database_path.is_absolute():
+            database_path = PROJECT_ROOT / database_path
+    else:
+        return database_url
+    database_path.parent.mkdir(parents=True, exist_ok=True)
+    return f"sqlite:///{database_path.as_posix()}"
+
+
 class BaseConfig:
     APP_NAME = "星芒账本"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -36,10 +50,7 @@ class BaseConfig:
 
     @staticmethod
     def init_app(app):
-        database_url = os.environ.get("DATABASE_URL")
-        if not database_url:
-            database_path = Path(app.instance_path) / "campus_ledger.db"
-            database_url = f"sqlite:///{database_path}"
+        database_url = resolve_database_url(os.environ.get("DATABASE_URL"), app.instance_path)
         app.config.setdefault("SQLALCHEMY_DATABASE_URI", database_url)
 
 
