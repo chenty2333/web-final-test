@@ -7,7 +7,7 @@ export async function loadPublicInfo() {
   const data = await apiFetch("/api/public/overview");
   $("#guestSeedCount").textContent = `${data.stats.seed_entries} 条样例`;
   $("#guestCards").innerHTML = [
-    `<article class="guest-card"><span>预置用户</span><strong>${data.stats.seed_users}</strong><small>满足每表 10 条以上数据要求</small></article>`,
+    `<article class="guest-card"><span>校园角色</span><strong>${data.stats.seed_users}</strong><small>覆盖宿舍、社团、学习和兼职等生活场景</small></article>`,
     `<article class="guest-card"><span>公共分类</span><strong>${data.stats.seed_categories}</strong><small>${data.sample_categories.map((c) => c.name).slice(0, 3).join("、")} 等</small></article>`,
     `<article class="guest-card"><span>记账建议</span><strong>${data.tips.length}</strong><small>${html(data.tips[0])}</small></article>`,
   ].join("");

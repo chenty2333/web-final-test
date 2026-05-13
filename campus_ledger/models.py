@@ -67,7 +67,7 @@ class Category(db.Model):
 
 
 class LedgerEntry(db.Model):
-    """Income or expense entry managed through the CRUD module."""
+    """Income or expense entry managed through the ledger module."""
 
     __tablename__ = "ledger_entries"
 

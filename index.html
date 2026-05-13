@@ -33,7 +33,7 @@
     <section id="homeView" class="view">
       <div class="hero-grid">
         <div class="hero-copy">
-          <p class="eyebrow">课程设计选题 3</p>
+          <p class="eyebrow">校园消费管理</p>
           <h1>创意型大学生生活记账本</h1>
           <p class="lead">把食堂、奶茶、学习资料、社团活动和兼职收入放进同一本账里，用分类预算、心愿基金和 AI 复盘让校园花销更清楚。</p>
           <div class="hero-actions">
@@ -78,7 +78,7 @@
         <div class="auth-intro">
           <p class="eyebrow">账号入口</p>
           <h1>登录后管理自己的校园账本</h1>
-          <p>测试账号：test / 123456。也可以注册一个新账号，系统会把数据按用户隔离。</p>
+          <p>使用账号登录后，可以查看专属账本、管理收支记录，并持续跟踪自己的心愿基金。</p>
         </div>
         <div class="auth-panel">
           <div class="tabs">
@@ -86,8 +86,8 @@
             <button data-auth-tab="register">注册</button>
           </div>
           <form id="loginForm" class="stack-form">
-            <label>用户名<input name="username" value="test" autocomplete="username" autocapitalize="off" required></label>
-            <label>密码<input name="password" type="password" value="123456" autocomplete="current-password" required></label>
+            <label>用户名<input name="username" autocomplete="username" autocapitalize="off" required></label>
+            <label>密码<input name="password" type="password" autocomplete="current-password" required></label>
             <button class="primary-btn full" type="submit">登录</button>
           </form>
           <form id="registerForm" class="stack-form hidden">
@@ -139,7 +139,7 @@
     <section id="entriesView" class="view hidden">
       <div class="page-heading">
         <div>
-          <p class="eyebrow">CRUD 模块</p>
+          <p class="eyebrow">账目管理</p>
           <h1>记账管理</h1>
         </div>
       </div>
@@ -193,7 +193,7 @@
     <section id="aiView" class="view hidden">
       <div class="page-heading">
         <div>
-          <p class="eyebrow">Flask 调用 AI</p>
+          <p class="eyebrow">智能复盘</p>
           <h1>AI 账本教练</h1>
         </div>
       </div>
@@ -208,8 +208,8 @@
           </form>
         </section>
         <aside class="surface">
-          <h2>AI 集成说明</h2>
-          <p>后端封装了通义千问 DashScope 接口。配置 <code>DASHSCOPE_API_KEY</code> 后调用真实模型；未配置时使用本地演示建议，保证答辩现场可运行。</p>
+          <h2>复盘方向</h2>
+          <p>围绕本月收支、分类排行和预算使用情况，给出更适合校园生活的消费复盘和储蓄建议。</p>
         </aside>
       </div>
     </section>

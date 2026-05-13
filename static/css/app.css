@@ -1,7 +1,4 @@
-/*
- * Copyright scope: original CSS for the Web course design project.
- * The visual system is tailored for a practical student ledger app.
- */
+/* Original stylesheet for the Starry Campus Ledger interface. */
 :root {
   color-scheme: light;
   --bg: #f4f7fb;
