@@ -433,7 +433,6 @@ def delete_goal_deposit(goal_id, deposit_id):
 
 
 @api_bp.get("/community/posts")
-@jwt_required()
 def community_posts():
     page = parse_int(request.args.get("page"), "页码", default=1, minimum=1)
     page_size = parse_int(request.args.get("page_size"), "每页数量", default=8, minimum=1, maximum=30)
@@ -468,7 +467,6 @@ def community_post_create():
 
 
 @api_bp.get("/community/posts/<int:post_id>")
-@jwt_required()
 def community_post_detail(post_id):
     row = db.session.get(CommunityPost, post_id)
     if row is None:

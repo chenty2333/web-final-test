@@ -4,6 +4,10 @@ import { currentMonth, html, money, queryString } from "../core/format.js";
 import state from "../core/state.js";
 
 export async function loadDashboard() {
+  if (!state.user) {
+    renderPublicDashboard();
+    return;
+  }
   const month = $("#dashboardMonth").value || currentMonth();
   state.selectedMonth = month;
   const [summaryData, entryData] = await Promise.all([
@@ -16,8 +20,38 @@ export async function loadDashboard() {
   renderDashboard();
 }
 
+function renderPublicDashboard() {
+  const info = state.publicInfo || { stats: {}, tips: [], sample_categories: [] };
+  $("#dashboardEyebrow").textContent = "0 身份浏览";
+  $("#dashboardTitle").textContent = "仪表盘";
+  $("#publicSummaryCards").innerHTML = [
+    ["公开分类", info.stats.seed_categories || 0, "先理解校园常见消费结构"],
+    ["社区经验", "可浏览", "未登录也能查看帖子和评论"],
+    ["个人账本", "登录后开启", "收支、预算、心愿和 AI 复盘会绑定账号"],
+  ]
+    .map(([label, value, note]) => `<article class="guest-card"><span>${label}</span><strong>${html(value)}</strong><small>${html(note)}</small></article>`)
+    .join("");
+  $("#publicCategoryPreview").innerHTML = (info.sample_categories || [])
+    .slice(0, 8)
+    .map((item) => `
+      <div class="category-pill">
+        <span class="color-dot" style="background:${html(item.color)}"></span>
+        <strong>${html(item.icon)} ${html(item.name)}</strong>
+        <small>月限 ${money(item.monthly_limit)}</small>
+      </div>
+    `)
+    .join("") || "<p>暂无公开分类。</p>";
+  $("#publicTipList").innerHTML = (info.tips || [])
+    .slice(0, 4)
+    .map((tip, index) => `<div class="method-item"><strong>${index + 1}</strong><span>${html(tip)}</span></div>`)
+    .join("") || "<p>暂无公开方法。</p>";
+}
+
 function renderDashboard() {
   const s = state.summary || {};
+  $("#dashboardEyebrow").textContent = "我的账本";
+  $("#dashboardTitle").textContent = "生活仪表盘";
+  renderDashboardDecision(s);
   $("#summaryCards").innerHTML = [
     [`${s.month || state.selectedMonth} 收入`, `+${money(s.income)}`, "奖学金、兼职等现金流"],
     [`${s.month || state.selectedMonth} 支出`, `-${money(s.expense)}`, `${s.entry_count || 0} 条账目`],
@@ -44,6 +78,32 @@ function renderDashboard() {
     .slice(0, 5)
     .map(renderCompactEntry)
     .join("") || `<p>暂无账目。</p>`;
+}
+
+function renderDashboardDecision(summary) {
+  const overBudget = (summary.budget_usage || []).filter((item) => item.rate >= 85);
+  const watchBudget = (summary.budget_usage || []).filter((item) => item.rate >= 60 && item.rate < 85);
+  const topCategory = summary.top_category || "暂无明显集中分类";
+  const balance = Number(summary.balance || 0);
+  const decisions = [
+    {
+      label: "今天重点",
+      text: overBudget.length
+        ? `${overBudget[0].name} 已接近或超过预算，今天先暂停非必要支出。`
+        : `优先复盘 ${topCategory}，确认它是不是本月主动选择。`,
+    },
+    {
+      label: "现金流",
+      text: balance >= 0 ? `本月结余 ${money(balance)} 元，可以安排一笔心愿基金存入。` : `本月已透支 ${money(Math.abs(balance))} 元，先降低可选消费。`,
+    },
+    {
+      label: "预算观察",
+      text: watchBudget.length ? `${watchBudget.map((item) => item.name).slice(0, 3).join("、")} 需要继续观察。` : "暂时没有明显预算压力。",
+    },
+  ];
+  $("#dashboardDecision").innerHTML = decisions
+    .map((item) => `<div class="decision-item"><span>${html(item.label)}</span><strong>${html(item.text)}</strong></div>`)
+    .join("");
 }
 
 function renderCompactEntry(entry) {

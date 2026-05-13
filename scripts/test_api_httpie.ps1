@@ -53,7 +53,7 @@ $createText = Invoke-Httpie @(
     "POST",
     "$BaseUrl/api/entries",
     "Authorization:Bearer $token",
-    "title=Demo coffee before defense",
+    "title=Library coffee",
     "amount:=16.00",
     "category_id:=2",
     "kind=expense",

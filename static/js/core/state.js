@@ -1,5 +1,6 @@
 const state = {
   user: null,
+  publicInfo: null,
   categories: [],
   entryOptions: [],
   ledgerSettingsLoaded: false,

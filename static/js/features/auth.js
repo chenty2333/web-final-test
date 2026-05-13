@@ -9,9 +9,11 @@ export function updateAuthUi() {
   $("#logoutButton").classList.toggle("hidden", !authed);
   $("#profileButton").classList.toggle("hidden", !authed);
   $("#authNavButton").classList.toggle("hidden", authed);
-  $$("[data-auth-only]").forEach((button) => {
-    button.disabled = !authed;
-    button.classList.toggle("hidden", !authed);
+  $$("[data-guest-only]").forEach((node) => {
+    node.classList.toggle("hidden", authed);
+  });
+  $$("[data-member-only]").forEach((node) => {
+    node.classList.toggle("hidden", !authed);
   });
 }
 
@@ -30,6 +32,8 @@ export function clearAuth() {
   clearToken();
   state.user = null;
   state.ledgerSettingsLoaded = false;
+  state.selectedGoal = null;
+  state.goalDeposits = [];
   updateAuthUi();
 }
 
@@ -41,6 +45,7 @@ export async function handleLogin(event, showRoute) {
     setToken(data.access_token);
     state.user = data.user;
     updateAuthUi();
+    await loadMe();
     showRoute("dashboard");
   } catch (error) {
     setMessage("#authMessage", error.message);

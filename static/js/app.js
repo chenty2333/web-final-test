@@ -25,7 +25,6 @@ import { onUnauthorized } from "./core/api.js";
 import state from "./core/state.js";
 
 const views = {
-  home: $("#homeView"),
   auth: $("#authView"),
   profile: $("#profileView"),
   dashboard: $("#dashboardView"),
@@ -35,27 +34,42 @@ const views = {
   ai: $("#aiView"),
 };
 
-function showRoute(route) {
+let currentRoute = "";
+
+function renderAccessBoundaries() {
+  const authed = Boolean(state.user);
+  $$("[data-auth-gate]").forEach((node) => node.classList.toggle("hidden", authed));
+  $$("[data-auth-workspace]").forEach((node) => node.classList.toggle("hidden", !authed));
+}
+
+function showRoute(route, pushHash = true) {
   if (!views[route]) {
-    route = "home";
-  }
-  if (!state.user && ["profile", "dashboard", "entries", "goals", "community", "ai"].includes(route)) {
-    route = "auth";
+    route = "dashboard";
   }
   Object.entries(views).forEach(([name, el]) => el.classList.toggle("hidden", name !== route));
   $$("[data-route]").forEach((button) => {
     button.classList.toggle("active", button.dataset.route === route);
   });
-  if (route === "profile") renderProfile();
+  renderAccessBoundaries();
+  if (route === "profile" && state.user) renderProfile();
   if (route === "dashboard") loadDashboard();
-  if (route === "entries") loadEntries();
-  if (route === "goals") loadGoals();
+  if (route === "entries" && state.user) loadEntries();
+  if (route === "goals" && state.user) loadGoals();
   if (route === "community") loadCommunity();
-  if (route === "ai") loadAiView();
-  location.hash = route;
+  if (route === "ai" && state.user) loadAiView();
+  currentRoute = route;
+  if (pushHash && location.hash !== `#${route}`) {
+    location.hash = route;
+  }
 }
 
 function bindNavigation() {
+  window.addEventListener("hashchange", () => {
+    const route = location.hash.replace("#", "") || "dashboard";
+    if (route !== currentRoute) {
+      showRoute(route, false);
+    }
+  });
   document.addEventListener("click", async (event) => {
     const routeButton = event.target.closest("[data-route]");
     if (routeButton) {
@@ -124,7 +138,7 @@ function bindNavigation() {
 function bindForms() {
   $("#logoutButton").addEventListener("click", () => {
     clearAuth();
-    showRoute("home");
+    showRoute("dashboard");
   });
   $("#loginForm").addEventListener("submit", (event) => handleLogin(event, showRoute));
   $("#registerForm").addEventListener("submit", handleRegister);
@@ -146,6 +160,7 @@ function bindForms() {
 }
 
 async function boot() {
+  const initialRoute = location.hash.replace("#", "") || "dashboard";
   onUnauthorized(() => {
     clearAuth();
     showRoute("auth");
@@ -163,7 +178,8 @@ async function boot() {
     await loadLedgerSettings();
   }
   updateAuthUi();
-  showRoute(location.hash.replace("#", "") || "home");
+  renderAccessBoundaries();
+  showRoute(initialRoute);
 }
 
 boot().catch(showBootError);

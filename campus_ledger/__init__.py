@@ -38,7 +38,7 @@ def create_app(config_overrides=None):
     jwt.init_app(app)
 
     from .routes import api_bp, register_jwt_handlers
-    from .seed import seed_demo_data
+    from .seed import seed_initial_data
 
     app.register_blueprint(api_bp, url_prefix="/api")
     register_jwt_handlers(jwt)
@@ -62,7 +62,7 @@ def create_app(config_overrides=None):
         db.create_all()
         ensure_schema_compatibility()
         if app.config.get("SEED_DATABASE", True):
-            seed_demo_data()
+            seed_initial_data()
 
     return app
 
@@ -105,8 +105,8 @@ def register_shell(app):
 def register_cli(app):
     @app.cli.command("init-db")
     def init_db_command():
-        from .seed import seed_demo_data
+        from .seed import seed_initial_data
 
         db.create_all()
-        seed_demo_data()
+        seed_initial_data()
         print("Database initialized and seeded.")

@@ -137,6 +137,12 @@ def test_goals_deposits_and_community(client, auth_headers):
     liked = expect_json(client.post(f"/api/community/posts/{post['id']}/like", headers=auth_headers))["data"]["post"]
     assert liked["likes_count"] >= 1
 
+    public_list = expect_json(client.get("/api/community/posts"))["data"]
+    assert public_list["posts"]
+    public_detail = expect_json(client.get(f"/api/community/posts/{post['id']}"))["data"]["post"]
+    assert public_detail["id"] == post["id"]
+    expect_json(client.post(f"/api/community/posts/{post['id']}/comments", json={"content": "匿名评论"}), 401, 401)
+
 
 def test_ai_fallback(client, auth_headers):
     result = expect_json(client.post("/api/ai/coach?month=2026-05", headers=auth_headers, json={"question": "How can I spend less?"}))

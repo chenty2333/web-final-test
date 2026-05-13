@@ -40,6 +40,10 @@ export function applyQuickPrompt(prompt) {
 function renderAiContext() {
   const summary = state.summary || {};
   const categories = summary.category_totals || [];
+  const riskRows = (summary.budget_usage || [])
+    .slice()
+    .sort((a, b) => b.rate - a.rate)
+    .slice(0, 4);
   $("#aiContext").innerHTML = `
     <div class="profile-line"><span>收入</span><strong>${money(summary.income)}</strong></div>
     <div class="profile-line"><span>支出</span><strong>${money(summary.expense)}</strong></div>
@@ -48,6 +52,15 @@ function renderAiContext() {
       ${categories.slice(0, 4).map((item) => `<span>${html(item.name)} · ${money(item.amount)}</span>`).join("") || "<span>暂无分类支出</span>"}
     </div>
   `;
+  $("#aiRiskList").innerHTML = riskRows
+    .map((item) => {
+      const cls = item.rate >= 85 ? "danger" : item.rate >= 60 ? "warn" : "good";
+      return `<div class="budget-item compact-risk">
+        <div class="budget-meta"><span>${html(item.name)}</span><strong>${item.rate}%</strong></div>
+        <div class="progress ${cls}"><span style="width:${Math.max(4, item.rate)}%"></span></div>
+      </div>`;
+    })
+    .join("") || "<span>暂无预算风险</span>";
 }
 
 function appendChat(role, text) {

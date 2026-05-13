@@ -8,10 +8,25 @@ export async function loadCommunity(page = state.communityPage || 1) {
   const data = await apiFetch(`/api/community/posts?page=${page}&page_size=8`);
   state.communityPosts = data.posts || [];
   state.communityPagination = data.pagination || null;
+  if (state.selectedPost && !state.communityPosts.some((post) => post.id === state.selectedPost.id)) {
+    state.selectedPost = null;
+  }
   renderCommunity();
+  if (!state.selectedPost && state.communityPosts.length) {
+    await loadPostDetail(state.communityPosts[0].id);
+  }
+}
+
+function renderCommunityAccess() {
+  const authed = Boolean(state.user);
+  $("#communityComposerGate").classList.toggle("hidden", authed);
+  $("#postForm").classList.toggle("hidden", !authed);
+  $("#commentGate").classList.toggle("hidden", authed || !state.selectedPost);
+  $("#commentForm").classList.toggle("hidden", !authed || !state.selectedPost);
 }
 
 function renderCommunity() {
+  renderCommunityAccess();
   $("#postList").innerHTML = state.communityPosts
     .map((post) => `
       <article class="post-card ${state.selectedPost?.id === post.id ? "active" : ""}" data-open-post="${post.id}">
@@ -22,7 +37,7 @@ function renderCommunity() {
           <small>${html(post.author.nickname)} · ${html(post.created_at)}</small>
         </div>
         <div class="post-actions">
-          <button class="ghost-btn" type="button" data-like-post="${post.id}">赞 ${post.likes_count}</button>
+          <button class="ghost-btn" type="button" data-like-post="${post.id}" ${state.user ? "" : "disabled"}>赞 ${post.likes_count}</button>
           <span>${post.comment_count} 条评论</span>
         </div>
       </article>
@@ -52,6 +67,10 @@ export async function changeCommunityPage(direction) {
 
 export async function savePost(event) {
   event.preventDefault();
+  if (!state.user) {
+    setMessage("#postMessage", "登录后才能发布内容。");
+    return;
+  }
   const form = event.currentTarget;
   const payload = Object.fromEntries(new FormData(form).entries());
   try {
@@ -78,11 +97,11 @@ function renderPostDetail() {
   if (!post) {
     $("#postDetailTitle").textContent = "帖子详情";
     $("#postDetail").innerHTML = "选择一条帖子查看评论。";
-    $("#commentForm").classList.add("hidden");
+    renderCommunityAccess();
     return;
   }
   $("#postDetailTitle").textContent = post.title;
-  $("#commentForm").classList.remove("hidden");
+  renderCommunityAccess();
   $("#postDetail").innerHTML = `
     <article class="post-detail">
       <span class="topic">${html(post.topic)}</span>
@@ -103,6 +122,10 @@ function renderPostDetail() {
 
 export async function saveComment(event) {
   event.preventDefault();
+  if (!state.user) {
+    setMessage("#commentMessage", "登录后才能评论。");
+    return;
+  }
   if (!state.selectedPost) return;
   const form = event.currentTarget;
   const payload = Object.fromEntries(new FormData(form).entries());
@@ -117,6 +140,10 @@ export async function saveComment(event) {
 }
 
 export async function likePost(postId) {
+  if (!state.user) {
+    setMessage("#commentMessage", "登录后才能点赞。");
+    return;
+  }
   await apiFetch(`/api/community/posts/${postId}/like`, { method: "POST" });
   await loadCommunity(state.communityPage);
   if (state.selectedPost?.id === Number(postId)) {
