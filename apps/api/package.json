@@ -1,0 +1,22 @@
+{
+  "name": "@starry-ledger/api",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --local --persist-to ../../.wrangler/state",
+    "db:migrate:local": "wrangler d1 migrations apply starry-ledger --local --persist-to ../../.wrangler/state",
+    "db:migrate:remote": "wrangler d1 migrations apply starry-ledger --remote",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "latest"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "latest",
+    "typescript": "latest",
+    "wrangler": "latest"
+  }
+}

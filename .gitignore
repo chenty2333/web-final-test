@@ -1,24 +1,45 @@
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.venv/
-venv/
-instance/
-ledger.db
-*.db
-*.sqlite
-*.sqlite3
-*.log
+# Dependencies
+node_modules/
+
+# Environment files
 .env
 .env.*
 !.env.example
+.dev.vars
+apps/api/.dev.vars
+
+# Next.js and Vercel
+.next/
+.vercel/
+out/
+
+# Cloudflare Workers and D1 local state
+.wrangler/
+dist-worker/
+
+# Logs and build metadata
+*.log
+*.out.log
+*.err.log
+*.tsbuildinfo
+
+# Generated local artifacts
+outputs/
+screenshots/
 *.zip
 ~$*.docx
-design_doc_assets/
-design_doc_render*/
-lo_convert*/
-lo_profile*/
-_doc_build_assets/
-_render_*/
-_lo_*/
-_qa_*.png
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+
+# Legacy/local Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+.venv/
+venv/
+*.egg-info/

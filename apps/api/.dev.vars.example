@@ -1,0 +1,8 @@
+ENVIRONMENT=development
+APP_ORIGIN=http://localhost:3000
+SESSION_COOKIE_NAME=starry_session
+SESSION_SECRET=dev-only-change-me
+MONITOR_SAMPLE_RATE=1
+TURNSTILE_SECRET=
+SEED_TOKEN=
+ADMIN_SETUP_TOKEN=dev-admin-setup-token

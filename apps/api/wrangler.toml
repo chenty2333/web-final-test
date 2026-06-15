@@ -1,0 +1,16 @@
+name = "starry-ledger-api"
+main = "src/index.ts"
+compatibility_date = "2026-06-01"
+
+[vars]
+ENVIRONMENT = "production"
+APP_ORIGIN = "https://ledger.tychen.cc"
+SESSION_COOKIE_NAME = "starry_session"
+MONITOR_SAMPLE_RATE = "1"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "starry-ledger"
+# Replace this with the database_id returned by `npx wrangler d1 create starry-ledger`.
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "../../database/d1"

@@ -1,69 +1,127 @@
-# 星芒账本
+# Starry Ledger
 
-创意型大学生生活记账本。项目采用 Flask + SQLite + HTML/CSS/原生 JavaScript 技术栈，实现账号体系、账目管理、月度统计、心愿基金、交流社区和智能账本建议。
+星芒账本是一个 Next.js + Cloudflare Workers + D1 的个人账本产品。
 
-## 功能
-
-- 未登录状态可浏览公开分类、记账方法和社区内容
-- 注册、登录、个人资料维护、JWT 鉴权和用户数据隔离
-- 账目新增、查询、修改、删除，支持月份、分类、类型筛选和分页
-- 个人分类、常用场景、常用心情管理
-- 按月仪表盘、六个月收支趋势、预算使用率、分类排行
-- 心愿基金创建、进度展示和存入流水
-- 交流社区帖子、评论和点赞；未登录只能浏览
-- 智能账本教练，结合月度数据给出消费复盘和储蓄建议，支持富文本展示
-
-## 本地运行
-
-```powershell
-uv venv
-uv pip install -r requirements-dev.txt
-Copy-Item .env.example .env
-.\.venv\Scripts\python.exe app.py
-```
-
-访问 `http://127.0.0.1:5000`。
-
-## 测试
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest
-```
-
-## 生产启动
-
-Windows 环境可用 Waitress：
-
-```powershell
-$env:APP_ENV="production"
-$env:JWT_SECRET_KEY="换成长随机密钥"
-$env:SECRET_KEY="换成另一个长随机密钥"
-.\scripts\run_waitress.ps1
-```
-
-生产配置优先读取环境变量，参考 `.env.example`。
-
-## 结构
+## Repository Layout
 
 ```text
-campus_ledger/
-  config.py          环境配置
-  extensions.py      Flask 扩展实例
-  errors.py          统一错误处理
-  validators.py      参数校验
-  services/          业务服务层
-  routes.py          REST API 路由
-  models.py          SQLAlchemy 模型
-  seed.py            初始数据种子
-static/js/
-  core/              API、状态、格式化、DOM 工具
-  features/          各页面功能模块
-tests/               接口测试
+apps/web      Next.js frontend, deployed to Vercel
+apps/api      Cloudflare Workers API, backed by D1
+database/d1   D1 SQL migrations
 ```
 
-## 交付材料
+The production frontend domain is `https://ledger.tychen.cc`. The API is intended to run on a separate Worker domain such as `https://ledger-api.tychen.cc`.
 
-- `星芒账本_课程设计书.docx`
-- `星芒账本_开发总结.docx`
-- `database/schema.sql`
-- `screenshots/` 页面截图
+## Requirements
+
+- Node.js 22+
+- npm
+- Cloudflare account with Workers and D1 enabled
+- Vercel account for the Next.js frontend
+
+## Local Development
+
+Install dependencies:
+
+```powershell
+npm install
+```
+
+Create local Worker variables:
+
+```powershell
+Copy-Item apps/api/.dev.vars.example apps/api/.dev.vars
+```
+
+Apply local D1 migrations:
+
+```powershell
+npm run db:migrate:local
+```
+
+Start the Worker and the web app in separate terminals:
+
+```powershell
+npm run dev:api
+npm run dev:web
+```
+
+Local URLs:
+
+```text
+Web: http://localhost:3000
+API: http://127.0.0.1:8787
+```
+
+## Production Setup
+
+Create the D1 database:
+
+```powershell
+Push-Location apps/api
+npx wrangler login
+npx wrangler d1 create starry-ledger
+Pop-Location
+```
+
+Copy the returned `database_id` into `apps/api/wrangler.toml`.
+
+Set Worker secrets:
+
+```powershell
+Push-Location apps/api
+npx wrangler secret put SESSION_SECRET
+npx wrangler secret put ADMIN_SETUP_TOKEN
+npx wrangler secret put SEED_TOKEN
+Pop-Location
+```
+
+Apply remote migrations and deploy the Worker:
+
+```powershell
+npm run db:migrate:remote
+npm run deploy:api
+```
+
+Deploy the Vercel frontend from `apps/web` with:
+
+```text
+Root Directory: apps/web
+Build Command: npm run build
+Environment: API_BASE_URL=https://ledger-api.tychen.cc
+```
+
+Then bind `ledger.tychen.cc` to the Vercel project.
+
+## Verification
+
+Run this before pushing or deploying:
+
+```powershell
+npm run typecheck
+npm run build
+```
+
+After deploying the Worker:
+
+```text
+https://ledger-api.tychen.cc/api/health
+```
+
+After deploying the frontend:
+
+```text
+https://ledger.tychen.cc
+https://ledger.tychen.cc/login
+https://ledger.tychen.cc/app
+```
+
+## Admin Setup
+
+The first administrator is not hard-coded. Set `ADMIN_SETUP_TOKEN` in Worker secrets, then open:
+
+```text
+https://ledger.tychen.cc/admin
+```
+
+Use the setup token once to create the first admin account. Admin passwords must be at least 12 characters. After an admin exists, role changes are handled from the admin console.
