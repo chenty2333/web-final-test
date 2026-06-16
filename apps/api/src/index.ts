@@ -875,7 +875,7 @@ function sessionSecret(env: Env) {
 
 async function hashPassword(password: string) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
-  const iterations = 210_000;
+  const iterations = 100_000;
   const bits = await pbkdf2(password, salt, iterations);
   return `pbkdf2-sha256$${iterations}$${base64url(salt)}$${base64url(new Uint8Array(bits))}`;
 }
