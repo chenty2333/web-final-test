@@ -1498,6 +1498,7 @@ async function seedTestAccount(db: D1Database) {
     { id: "test-user-community-a", email: "mint@starry.local", name: "薄荷预算派" },
     { id: "test-user-community-b", email: "north@starry.local", name: "北区账友" },
   ];
+  await resetSeedUsers(db, users);
   for (const user of users) {
     await db
       .prepare(
@@ -1511,9 +1512,9 @@ async function seedTestAccount(db: D1Database) {
   const [owner] = users;
   if (!owner) throw new Error("Seed user is missing");
   const ownerId = owner.id;
-  await clearSeedData(db, users.map((user) => user.id));
   await seedCustomCategories(db, ownerId, now);
-  await seedLedgerEntries(db, ownerId, now);
+  const ledgerEntryCount = await seedLedgerEntries(db, ownerId, now);
+  await seedEntryOperations(db, ownerId, now);
   await seedGoalsAndRecurring(db, ownerId, now);
   await seedCommunity(db, users, now);
   await seedRequestLogs(db, ownerId);
@@ -1523,10 +1524,20 @@ async function seedTestAccount(db: D1Database) {
     displayName: owner.name,
     seeded: {
       ledgerMonths: 6,
+      ledgerEntries: ledgerEntryCount,
       communityUsers: users.length,
       monitoringWindow: "6h",
     },
   };
+}
+
+async function resetSeedUsers(db: D1Database, users: Array<{ id: string; email: string }>) {
+  const userIds = users.map((user) => user.id);
+  const emails = users.map((user) => user.email);
+  const idPlaceholders = userIds.map(() => "?").join(",");
+  const emailPlaceholders = emails.map(() => "?").join(",");
+  await clearSeedData(db, userIds);
+  await db.prepare(`DELETE FROM users WHERE id IN (${idPlaceholders}) OR email IN (${emailPlaceholders})`).bind(...userIds, ...emails).run();
 }
 
 async function clearSeedData(db: D1Database, userIds: string[]) {
@@ -1539,6 +1550,8 @@ async function clearSeedData(db: D1Database, userIds: string[]) {
   await db.prepare("DELETE FROM ledger_entries WHERE user_id = ?").bind(ownerId).run();
   await db.prepare("DELETE FROM saving_goals WHERE user_id = ?").bind(ownerId).run();
   await db.prepare("DELETE FROM recurring_rules WHERE user_id = ?").bind(ownerId).run();
+  await db.prepare("DELETE FROM saved_entry_filters WHERE user_id = ?").bind(ownerId).run();
+  await db.prepare("DELETE FROM entry_review_states WHERE user_id = ?").bind(ownerId).run();
   await db.prepare("DELETE FROM categories WHERE user_id = ?").bind(ownerId).run();
   await db.prepare("DELETE FROM sessions WHERE user_id = ?").bind(ownerId).run();
   await db.prepare("DELETE FROM api_request_logs WHERE user_id = ? OR ip_hash = 'seeded'").bind(ownerId).run();
@@ -1549,6 +1562,11 @@ async function seedCustomCategories(db: D1Database, userId: string, now: string)
     ["test_cat_rent", "房租", "home", "#8b95a7", 3500, 70],
     ["test_cat_exam", "考试报名", "book-open", "#7c8df0", 1500, 80],
     ["test_cat_planned", "大额计划", "shopping-bag", "#0f8b8d", 2600, 90],
+    ["test_cat_health", "医疗健康", "heart-pulse", "#e45d75", 600, 100],
+    ["test_cat_entertainment", "娱乐社交", "message-circle", "#9b6ee8", 700, 110],
+    ["test_cat_travel", "旅行出行", "train-front", "#2c8ed6", 1200, 120],
+    ["test_cat_subscription", "订阅服务", "repeat-2", "#f08b32", 360, 130],
+    ["test_cat_debt", "信用还款", "badge-dollar-sign", "#53606f", 2600, 140],
   ];
   for (const category of categories) {
     await db
@@ -1596,6 +1614,22 @@ async function seedLedgerEntries(db: D1Database, userId: string, now: string) {
     ["2026-06-12", "test_cat_planned", "夏季衣物", 520, "expense", "星芒信用卡", "购物", "计划内"],
     ["2026-06-12", "test_cat_exam", "考试报名费", 420, "expense", "招商银行储蓄卡", "学习", "必要"],
     ["2026-06-12", "cat_food", "周末餐饮预留", 360, "expense", "微信钱包", "餐饮", "复盘"],
+    ["2026-06-13", "cat_learning", "论文查重服务", 128, "expense", "招商银行储蓄卡", "论文", "赶稿"],
+    ["2026-06-13", "test_cat_entertainment", "电影票", 65, "expense", "微信钱包", "娱乐", "放松"],
+    ["2026-06-13", "cat_commute", "周末公交地铁", 12, "expense", "微信钱包", "出行", "平静"],
+    ["2026-06-13", "cat_living", "超市水果", 48.6, "expense", "微信钱包", "生活", "补货"],
+    ["2026-06-14", "cat_income", "兼职收入", 600, "income", "微信钱包", "兼职", "开心"],
+    ["2026-06-14", "test_cat_health", "健身房单次课", 88, "expense", "星芒信用卡", "健康", "投入"],
+    ["2026-06-14", "cat_shopping", "朋友生日礼物", 268, "expense", "星芒信用卡", "礼物", "开心"],
+    ["2026-06-14", "test_cat_subscription", "云服务订阅扣费", 98, "expense", "星芒信用卡", "订阅", "固定"],
+    ["2026-06-15", "cat_income", "项目奖金", 1200, "income", "招商银行储蓄卡", "奖金", "开心"],
+    ["2026-06-15", "cat_food", "咖啡和简餐", 54.5, "expense", "微信钱包", "工作日", "提神"],
+    ["2026-06-15", "test_cat_health", "药店感冒药", 42.8, "expense", "微信钱包", "健康", "必要"],
+    ["2026-06-15", "test_cat_debt", "信用卡还款入账", 2200, "income", "星芒信用卡", "还款", "固定"],
+    ["2026-06-16", "cat_food", "星巴克早餐", 39, "expense", "微信钱包", "早餐", "提神"],
+    ["2026-06-16", "cat_commute", "地铁通勤", 6, "expense", "微信钱包", "通勤", "平静"],
+    ["2026-06-16", "cat_learning", "考试资料包", 138, "expense", "招商银行储蓄卡", "学习", "必要"],
+    ["2026-06-16", "test_cat_travel", "跨城周末车票", 286, "expense", "星芒信用卡", "旅行", "期待"],
   ];
   const monthlySeeds = [
     ["2026-01", 7200, 6120],
@@ -1614,13 +1648,63 @@ async function seedLedgerEntries(db: D1Database, userId: string, now: string) {
     baseEntries.push([`${month}-26`, "test_cat_planned", "月度其他合计", Math.round(expense * 0.275 * 100) / 100, "expense", "星芒信用卡", "其他", "复盘"]);
   }
   for (const entry of baseEntries) {
+    const id = crypto.randomUUID();
     await db
       .prepare(
         `INSERT INTO ledger_entries
           (id, user_id, category_id, title, amount_cents, kind, account_name, scene, mood, note, occurred_on, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
-      .bind(crypto.randomUUID(), userId, entry[1], entry[2], toCents(entry[3]), entry[4], entry[5], entry[6], entry[7], "", entry[0], now, now)
+      .bind(id, userId, entry[1], entry[2], toCents(entry[3]), entry[4], entry[5], entry[6], entry[7], "", entry[0], now, now)
+      .run();
+  }
+  return baseEntries.length;
+}
+
+async function seedEntryOperations(db: D1Database, userId: string, now: string) {
+  const recentEntries = await db
+    .prepare("SELECT id, title FROM ledger_entries WHERE user_id = ? AND occurred_on >= '2026-06-01' ORDER BY occurred_on DESC, created_at DESC LIMIT 14")
+    .bind(userId)
+    .all<{ id: string; title: string }>();
+  for (const entry of recentEntries.results || []) {
+    await db
+      .prepare(
+        `INSERT INTO entry_review_states (user_id, entry_id, status, note, reviewed_at, updated_at)
+         VALUES (?, ?, 'reviewed', ?, ?, ?)`,
+      )
+      .bind(userId, entry.id, `种子账号已核对：${entry.title}`, now, now)
+      .run();
+  }
+
+  const filters: Array<[string, string, string, string, string, string, string, number, number]> = [
+    ["高额支出复盘", "", "expense", "全部账户", "全部分类", "2026-06-01", "2026-06-30", 300, 0],
+    ["信用卡本月账单", "", "all", "星芒信用卡", "全部分类", "2026-06-01", "2026-06-30", 0, 0],
+    ["餐饮控制线", "", "expense", "全部账户", "餐饮", "2026-06-01", "2026-06-30", 0, 120],
+    ["收入到账记录", "", "income", "全部账户", "全部分类", "2026-01-01", "2026-06-30", 0, 0],
+    ["订阅与固定扣费", "订阅", "expense", "全部账户", "全部分类", "2026-06-01", "2026-06-30", 0, 0],
+  ];
+  for (const filter of filters) {
+    await db
+      .prepare(
+        `INSERT INTO saved_entry_filters
+          (id, user_id, name, scope, query, kind, account_name, category_name, from_date, to_date, min_amount_cents, max_amount_cents, created_at, updated_at)
+         VALUES (?, ?, ?, 'entries', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(
+        crypto.randomUUID(),
+        userId,
+        filter[0],
+        filter[1],
+        filter[2],
+        filter[3],
+        filter[4],
+        filter[5],
+        filter[6],
+        toCents(filter[7]),
+        toCents(filter[8]),
+        now,
+        now,
+      )
       .run();
   }
 }
@@ -1630,6 +1714,7 @@ async function seedGoalsAndRecurring(db: D1Database, userId: string, now: string
     ["欧洲旅行基金", 20000, 8420, "2026-09-01", "active"],
     ["应急基金", 30000, 15600, "2026-12-31", "active"],
     ["新电脑基金", 12000, 4200, "2026-10-20", "active"],
+    ["考证报名与资料", 3600, 1280, "2026-08-15", "active"],
   ];
   for (const goal of goals) {
     await db
@@ -1640,10 +1725,14 @@ async function seedGoalsAndRecurring(db: D1Database, userId: string, now: string
       .run();
   }
   const recurring: Array<[string, number, "income" | "expense", string, string]> = [
+    ["房租分摊", 1800, "expense", "monthly", "2026-07-12"],
     ["Netflix", 30, "expense", "monthly", "2026-06-15"],
     ["Spotify", 18, "expense", "monthly", "2026-06-16"],
     ["腾讯视频", 20, "expense", "monthly", "2026-06-20"],
     ["云服务订阅", 98, "expense", "monthly", "2026-06-21"],
+    ["校园网套餐", 59, "expense", "monthly", "2026-06-25"],
+    ["健身房会员", 168, "expense", "monthly", "2026-06-28"],
+    ["兼职结算", 600, "income", "monthly", "2026-07-14"],
   ];
   for (const rule of recurring) {
     await db
@@ -1660,6 +1749,8 @@ async function seedCommunity(db: D1Database, users: Array<{ id: string; email: s
     [friendA.id, "monthly-review", "餐饮预算怎么从 90% 压下来", "我把奶茶和外卖拆成两个标签后，发现周三和周五最容易超支。准备本周先用食堂替代两顿外卖。", "2026-06", "public"],
     [friendB.id, "purchase-check", "618 键盘要不要等到下个月", "模拟后发现本月买会让购物分类超过 80%，但如果推迟到 7 月，旅行基金不会受影响。", "2026-06", "anonymous"],
     [owner.id, "saving-challenge", "本周 150 元生活费挑战", "目标是工作日只在食堂吃饭，省下来的钱直接转入欧洲旅行基金。", "2026-06", "public"],
+    [friendA.id, "debt-payoff", "信用卡还款顺序怎么排", "我先把 6 月所有星芒信用卡消费筛出来，再按金额从高到低核对。发现订阅扣费和购物最容易漏。", "2026-06", "public"],
+    [owner.id, "monthly-review", "6 月中旬复盘：订阅比想象中多", "本月已经有 4 个固定扣费，准备把云服务、视频会员和健身会员统一放进订阅服务分类，月底更好复盘。", "2026-06", "public"],
   ];
   const postIds: string[] = [];
   for (const post of posts) {
@@ -1676,8 +1767,10 @@ async function seedCommunity(db: D1Database, users: Array<{ id: string; email: s
   if (!firstPostId || !secondPostId) throw new Error("Seed community posts are missing");
   await db.prepare("INSERT INTO community_comments (id, post_id, user_id, body, created_at) VALUES (?, ?, ?, ?, ?)").bind(crypto.randomUUID(), firstPostId, owner.id, "可以把饮料单独设置预算上限，提醒会更早出现。", now).run();
   await db.prepare("INSERT INTO community_comments (id, post_id, user_id, body, created_at) VALUES (?, ?, ?, ?, ?)").bind(crypto.randomUUID(), secondPostId, friendA.id, "建议先把购买前模拟结果发出来，大家更容易判断。", now).run();
+  await db.prepare("INSERT INTO community_comments (id, post_id, user_id, body, created_at) VALUES (?, ?, ?, ?, ?)").bind(crypto.randomUUID(), firstPostId, friendB.id, "我会把外卖和堂食拆开，看起来更容易找到压力点。", now).run();
   for (const postId of postIds) {
     await db.prepare("INSERT OR IGNORE INTO community_post_reactions (post_id, user_id, created_at) VALUES (?, ?, ?)").bind(postId, owner.id, now).run();
+    await db.prepare("INSERT OR IGNORE INTO community_post_reactions (post_id, user_id, created_at) VALUES (?, ?, ?)").bind(postId, friendA.id, now).run();
   }
 }
 
@@ -1685,7 +1778,7 @@ async function seedRequestLogs(db: D1Database, userId: string) {
   const paths = ["/api/dashboard", "/api/entries", "/api/entries/parse", "/api/goals", "/api/ai/coach", "/api/community/posts", "/api/monitor/overview"];
   const methods = ["GET", "GET", "POST", "POST", "POST", "GET", "GET"];
   const now = Date.now();
-  for (let index = 0; index < 260; index += 1) {
+  for (let index = 0; index < 620; index += 1) {
     const routeIndex = index % paths.length;
     const method = methods[routeIndex] || "GET";
     const path = paths[routeIndex] || "/api/dashboard";

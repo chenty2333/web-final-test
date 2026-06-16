@@ -1769,9 +1769,13 @@ function CategoryGlyph({ entry }: { entry: Entry }) {
 
 function categoryIcon(icon: string, name: string) {
   if (icon.includes("utensils") || name.includes("餐")) return Utensils;
-  if (icon.includes("train") || name.includes("交通")) return TrainFront;
+  if (icon.includes("train") || name.includes("交通") || name.includes("旅行")) return TrainFront;
   if (icon.includes("book") || name.includes("学习")) return BookOpen;
   if (icon.includes("shopping") || name.includes("购物")) return ShoppingBag;
+  if (icon.includes("heart") || name.includes("医疗") || name.includes("健康")) return Heart;
+  if (icon.includes("message") || name.includes("娱乐") || name.includes("社交")) return MessageCircle;
+  if (icon.includes("repeat") || name.includes("订阅")) return Repeat2;
+  if (icon.includes("dollar") || name.includes("信用") || name.includes("还款")) return BadgeDollarSign;
   if (icon.includes("home") || name.includes("房租") || name.includes("生活")) return House;
   if (icon.includes("wallet") || name.includes("收入") || name.includes("工资")) return Wallet;
   return ReceiptText;
@@ -2165,7 +2169,11 @@ function BudgetBoard({ dashboard, total, month }: { dashboard: DashboardData; to
           {busyPlan ? "生成中..." : "生成下周预算"}
         </button>
       </div>
-      {plan ? <div className="budget-plan">{plan}</div> : null}
+      {plan ? (
+        <div className="budget-plan">
+          <MarkdownMessage content={plan} />
+        </div>
+      ) : null}
       <div className="budget-lane-grid">
         {dashboard.budgetLanes.length ? (
           dashboard.budgetLanes.map((lane) => (
@@ -3103,7 +3111,7 @@ function CoachStudio({
         {messages.map((message) => (
           <div className={clsx("ai-message", message.role)} key={message.id}>
             {message.role === "assistant" ? <Bot size={18} /> : null}
-            <p>{message.content}</p>
+            {message.role === "assistant" ? <MarkdownMessage content={message.content} /> : <p>{message.content}</p>}
           </div>
         ))}
         {busyCoach ? (
@@ -3138,6 +3146,100 @@ function CoachStudio({
       <ForecastPanel dashboard={dashboard} trendMax={trendMax} />
     </section>
   );
+}
+
+function MarkdownMessage({ content }: { content: string }) {
+  const blocks: React.ReactNode[] = [];
+  let paragraph: string[] = [];
+  let list: { ordered: boolean; items: string[] } | null = null;
+
+  function flushParagraph() {
+    if (!paragraph.length) return;
+    const key = `p-${blocks.length}`;
+    blocks.push(<p key={key}>{renderInlineMarkdownWithBreaks(paragraph.join("\n"), key)}</p>);
+    paragraph = [];
+  }
+
+  function flushList() {
+    if (!list) return;
+    const key = `list-${blocks.length}`;
+    const Tag = list.ordered ? "ol" : "ul";
+    blocks.push(
+      <Tag key={key}>
+        {list.items.map((item, index) => (
+          <li key={`${key}-${index}`}>{renderInlineMarkdownWithBreaks(item, `${key}-${index}`)}</li>
+        ))}
+      </Tag>,
+    );
+    list = null;
+  }
+
+  content.split(/\r?\n/).forEach((rawLine) => {
+    const line = rawLine.trim();
+    if (!line) {
+      flushParagraph();
+      flushList();
+      return;
+    }
+
+    const heading = line.match(/^#{1,3}\s+(.+)$/);
+    if (heading) {
+      flushParagraph();
+      flushList();
+      const key = `heading-${blocks.length}`;
+      blocks.push(
+        <strong className="ai-markdown-heading" key={key}>
+          {renderInlineMarkdown(heading[1] || "", key)}
+        </strong>,
+      );
+      return;
+    }
+
+    const orderedItem = line.match(/^\d+[.)]\s+(.+)$/);
+    const unorderedItem = line.match(/^[-*]\s+(.+)$/);
+    if (orderedItem || unorderedItem) {
+      flushParagraph();
+      const ordered = Boolean(orderedItem);
+      if (list && list.ordered !== ordered) flushList();
+      if (!list) list = { ordered, items: [] };
+      list.items.push((orderedItem?.[1] || unorderedItem?.[1] || "").trim());
+      return;
+    }
+
+    if (list?.items.length) {
+      const lastIndex = list.items.length - 1;
+      list.items[lastIndex] = `${list.items[lastIndex]}\n${line}`;
+      return;
+    }
+
+    paragraph.push(line);
+  });
+
+  flushParagraph();
+  flushList();
+
+  return <div className="ai-markdown">{blocks.length ? blocks : <p>{content}</p>}</div>;
+}
+
+function renderInlineMarkdownWithBreaks(text: string, keyPrefix: string) {
+  return text.split("\n").flatMap((line, index) => {
+    const rendered = renderInlineMarkdown(line, `${keyPrefix}-line-${index}`);
+    return index === 0 ? rendered : [<br key={`${keyPrefix}-br-${index}`} />, ...rendered];
+  });
+}
+
+function renderInlineMarkdown(text: string, keyPrefix: string) {
+  const chunks = text.split(/(\*\*[^*]+?\*\*|`[^`]+?`)/g).filter(Boolean);
+  return chunks.map((chunk, index) => {
+    const key = `${keyPrefix}-${index}`;
+    if (chunk.startsWith("**") && chunk.endsWith("**")) {
+      return <strong key={key}>{chunk.slice(2, -2)}</strong>;
+    }
+    if (chunk.startsWith("`") && chunk.endsWith("`")) {
+      return <code key={key}>{chunk.slice(1, -1)}</code>;
+    }
+    return <span key={key}>{chunk}</span>;
+  });
 }
 
 function ContextRail({ dashboard, onAction }: { dashboard: DashboardData; onAction: (action: string) => void }) {
