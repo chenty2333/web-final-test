@@ -603,7 +603,12 @@ app.post("/api/ai/coach", requireUser, async (c) => {
   if (c.env.MIMO_API_KEY) {
     try {
       answer = await buildMimoCoachAnswer(c.env, question, dashboard);
-      source = "mimo";
+      if (isEmptyLedgerDashboard(dashboard) && looksLikeEmptyLedgerRefusal(answer)) {
+        answer = buildEmptyLedgerCoachAnswer(question);
+        source = "rules-empty";
+      } else {
+        source = "mimo";
+      }
     } catch (error) {
       console.error("mimo coach failed", error);
     }
@@ -1950,6 +1955,7 @@ function buildCoachAnswer(question: string, dashboard: Awaited<ReturnType<typeof
   const hasRisk = Boolean(dashboard.risk);
   const hasNegativeCashflow = dashboard.summary.balance < 0;
   const isEmptyMonth = dashboard.summary.income <= 0 && dashboard.summary.expense <= 0;
+  if (isEmptyMonth) return buildEmptyLedgerCoachAnswer(question);
   const risk = isEmptyMonth
     ? "当前还没有足够的本月流水来判断预算风险。"
     : dashboard.risk
@@ -1994,7 +2000,7 @@ async function buildMimoCoachAnswer(env: Env, question: string, dashboard: Await
           {
             role: "system",
             content:
-              "你是星芒账本里的 AI 财务教练。只根据用户账本上下文回答，使用简洁中文，给出可执行建议。不要编造不存在的交易、余额或身份信息。",
+              "你是星芒账本里的 AI 财务教练。使用简洁中文，给出可执行建议。不要编造不存在的交易、余额或身份信息。账本为空时也必须回答：进入起步预算模式，基于明确假设给出 starter budget、记账模板和下一步动作；不要只说无法生成或请先补录。",
           },
           {
             role: "user",
@@ -2032,8 +2038,11 @@ function mimoEndpoint(baseUrl = "https://token-plan-sgp.xiaomimimo.com/v1") {
 }
 
 function buildMimoCoachPrompt(question: string, dashboard: Awaited<ReturnType<typeof buildDashboard>>) {
+  const isEmpty = isEmptyLedgerDashboard(dashboard);
   const context = {
     userQuestion: question || "我应该怎么安排本月消费？",
+    dataAvailability: isEmpty ? "empty-ledger" : "has-ledger-data",
+    emptyLedgerMode: isEmpty,
     summary: dashboard.summary,
     risk: dashboard.risk || null,
     topCategories: dashboard.topCategories.slice(0, 6),
@@ -2051,8 +2060,32 @@ function buildMimoCoachPrompt(question: string, dashboard: Awaited<ReturnType<ty
   return [
     "请基于下面 JSON 账本上下文回答用户问题。",
     "回答格式：先用 1 句话总结现金流状态，再给 3 条具体动作。必要时指出需要补录哪些数据。",
+    "如果 dataAvailability 是 empty-ledger：不要拒绝回答，不要说无法生成有效预算；请给一个可先执行的起步预算方案。例如按收入未知处理、建议先设每周可变支出上限、给 3 个记账字段和一个 7 天补数计划。所有数字都要标注为临时假设。",
     "不要输出 Markdown 表格，不要提及你是模型，不要建议高风险投资。",
     JSON.stringify(context),
+  ].join("\n\n");
+}
+
+function isEmptyLedgerDashboard(dashboard: Awaited<ReturnType<typeof buildDashboard>>) {
+  return dashboard.summary.income <= 0 && dashboard.summary.expense <= 0 && dashboard.recentEntries.length === 0;
+}
+
+function looksLikeEmptyLedgerRefusal(answer: string) {
+  const text = answer.replace(/\s+/g, "");
+  return (
+    (text.includes("无法生成") || text.includes("不能生成") || text.includes("无法评估") || text.includes("无法判断")) &&
+    (text.includes("补录") || text.includes("收支记录") || text.includes("收支明细"))
+  );
+}
+
+function buildEmptyLedgerCoachAnswer(question: string) {
+  const intent = question || "我应该怎么开始做预算？";
+  return [
+    `你问的是：“${intent}”。当前账本还没有流水，我会先按“起步预算模式”给你一个可执行方案，下面的金额都是临时假设。`,
+    "1. 先设一个 7 天试运行预算：固定支出先不估，餐饮/交通/日用合计每日上限按你能接受的保守金额设置，例如 80-120 元；如果你是学生或轻量消费，可以先用 100 元作为临时日上限。",
+    "2. 今天开始只记录 4 个字段：金额、分类、账户、备注。至少补 3 类数据：最近一笔收入、最近 7 天支出、每月固定扣费。",
+    "3. 7 天后再生成正式预算：用这 7 天平均日支出乘以 30 得到基础生活预算，再把收入的 10%-20% 先放进储蓄或心愿目标。",
+    "现在就可以问我：如果我每月收入 X、房租 Y、想存 Z，应该怎么分配？我可以先按你给的假设帮你排预算。",
   ].join("\n\n");
 }
 
