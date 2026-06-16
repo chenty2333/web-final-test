@@ -6,3 +6,6 @@ MONITOR_SAMPLE_RATE=1
 TURNSTILE_SECRET=
 SEED_TOKEN=
 ADMIN_SETUP_TOKEN=dev-admin-setup-token
+MIMO_API_KEY=
+MIMO_BASE_URL=https://token-plan-sgp.xiaomimimo.com/v1
+MIMO_MODEL=mimo-v2.5

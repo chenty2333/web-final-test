@@ -8,4 +8,7 @@ interface Env {
   MONITOR_SAMPLE_RATE?: string;
   SEED_TOKEN?: string;
   ADMIN_SETUP_TOKEN?: string;
+  MIMO_API_KEY?: string;
+  MIMO_BASE_URL?: string;
+  MIMO_MODEL?: string;
 }

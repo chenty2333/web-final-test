@@ -597,9 +597,21 @@ app.post("/api/ai/coach", requireUser, async (c) => {
   const month = normalizeMonth(String(body.month || ""));
   const dashboard = await buildDashboard(c.env.DB, c.get("user"), month);
   const question = String(body.question || "").trim();
+  const fallbackAnswer = buildCoachAnswer(question, dashboard);
+  let answer = fallbackAnswer;
+  let source = "rules";
+  if (c.env.MIMO_API_KEY) {
+    try {
+      answer = await buildMimoCoachAnswer(c.env, question, dashboard);
+      source = "mimo";
+    } catch (error) {
+      console.error("mimo coach failed", error);
+    }
+  }
   return ok(c, {
-    answer: buildCoachAnswer(question, dashboard),
+    answer,
     actions: buildCoachActions(dashboard),
+    source,
   });
 });
 
@@ -1962,6 +1974,101 @@ function buildCoachAnswer(question: string, dashboard: Awaited<ReturnType<typeof
     allowanceAdvice,
     nextSteps,
   ].join("\n\n");
+}
+
+async function buildMimoCoachAnswer(env: Env, question: string, dashboard: Awaited<ReturnType<typeof buildDashboard>>) {
+  const endpoint = mimoEndpoint(env.MIMO_BASE_URL);
+  const model = env.MIMO_MODEL || "mimo-v2.5";
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 18_000);
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "api-key": env.MIMO_API_KEY || "",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: "system",
+            content:
+              "你是星芒账本里的 AI 财务教练。只根据用户账本上下文回答，使用简洁中文，给出可执行建议。不要编造不存在的交易、余额或身份信息。",
+          },
+          {
+            role: "user",
+            content: buildMimoCoachPrompt(question, dashboard),
+          },
+        ],
+        max_completion_tokens: 700,
+        temperature: 0.35,
+        top_p: 0.9,
+        stream: false,
+        thinking: { type: "disabled" },
+      }),
+      signal: controller.signal,
+    });
+    const payload = (await response.json().catch(() => ({}))) as {
+      choices?: Array<{ message?: { content?: unknown } }>;
+      error?: { message?: string };
+      message?: string;
+    };
+    if (!response.ok) {
+      const message = payload.error?.message || payload.message || `MiMo request failed with ${response.status}`;
+      throw new Error(message);
+    }
+    const content = extractTextContent(payload.choices?.[0]?.message?.content).trim();
+    if (!content) throw new Error("MiMo returned an empty answer");
+    return content;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function mimoEndpoint(baseUrl = "https://token-plan-sgp.xiaomimimo.com/v1") {
+  const trimmed = baseUrl.trim().replace(/\/+$/, "");
+  return trimmed.endsWith("/chat/completions") ? trimmed : `${trimmed}/chat/completions`;
+}
+
+function buildMimoCoachPrompt(question: string, dashboard: Awaited<ReturnType<typeof buildDashboard>>) {
+  const context = {
+    userQuestion: question || "我应该怎么安排本月消费？",
+    summary: dashboard.summary,
+    risk: dashboard.risk || null,
+    topCategories: dashboard.topCategories.slice(0, 6),
+    recentEntries: dashboard.recentEntries.slice(0, 8).map((entry) => ({
+      title: entry.title,
+      kind: entry.kind,
+      amount: entry.amount,
+      categoryName: entry.category.name,
+      accountName: entry.accountName,
+      occurredOn: entry.occurredOn,
+    })),
+    goals: dashboard.goals.slice(0, 5),
+    recurring: dashboard.recurring.slice(0, 5),
+  };
+  return [
+    "请基于下面 JSON 账本上下文回答用户问题。",
+    "回答格式：先用 1 句话总结现金流状态，再给 3 条具体动作。必要时指出需要补录哪些数据。",
+    "不要输出 Markdown 表格，不要提及你是模型，不要建议高风险投资。",
+    JSON.stringify(context),
+  ].join("\n\n");
+}
+
+function extractTextContent(value: unknown) {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object" && "text" in item) return String((item as { text?: unknown }).text || "");
+        if (item && typeof item === "object" && "content" in item) return String((item as { content?: unknown }).content || "");
+        return "";
+      })
+      .join("");
+  }
+  return "";
 }
 
 function buildCoachActions(dashboard: Awaited<ReturnType<typeof buildDashboard>>) {
